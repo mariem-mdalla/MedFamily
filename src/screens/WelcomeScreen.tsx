@@ -9,8 +9,11 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
     <View style={styles.container}>
       <Text style={styles.title}>MedFamily</Text>
       <Text style={styles.message}>Medication schedules for your household.</Text>
-      <Pressable style={styles.button} onPress={() => navigation.navigate('Home')}>
-        <Text style={styles.buttonText}>Continue</Text>
+      <Pressable style={styles.button} onPress={() => navigation.navigate('Register')}>
+        <Text style={styles.buttonText}>Create account</Text>
+      </Pressable>
+      <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate('Login')}>
+        <Text style={styles.secondaryButtonText}>I already have an account</Text>
       </Pressable>
     </View>
   );
@@ -44,6 +47,20 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontSize: 20,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    marginTop: 16,
+    minHeight: 56,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#1d4e89',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: '#1d4e89',
+    fontSize: 18,
     fontWeight: '700',
   },
 });
