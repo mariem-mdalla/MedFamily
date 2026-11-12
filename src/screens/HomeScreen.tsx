@@ -1,53 +1,60 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/types';
 
-type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
+export default function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { profile, session } = useAuth();
 
-export default function HomeScreen({ navigation }: HomeScreenProps) {
-  const { profile, session, signOut } = useAuth();
-  const [message, setMessage] = useState('');
-  const [isSigningOut, setIsSigningOut] = useState(false);
-
-  async function handleSignOut() {
-    setIsSigningOut(true);
-    setMessage('');
-
-    try {
-      await signOut();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not sign out.');
-      setIsSigningOut(false);
-    }
-  }
+  const currentHour = new Date().getHours();
+  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
+  const todayFormatted = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Home</Text>
-      <Text style={styles.message}>
-        Signed in as {profile?.display_name ?? session?.user.email}
-      </Text>
-      <Text style={styles.detail}>Role: {profile?.role ?? 'loading'}</Text>
+      <View style={styles.headerCard}>
+        <Text style={styles.dateText}>{todayFormatted}</Text>
+        <Text style={styles.greetingText}>
+          {greeting}, {profile?.display_name ?? session?.user.email ?? 'friend'}
+        </Text>
+        <View style={styles.roleBadge}>
+          <Text style={styles.roleText}>
+            {profile?.role === 'admin' ? 'Household Admin' : 'Family Member'}
+          </Text>
+        </View>
+      </View>
 
-      <Pressable style={styles.button} onPress={() => navigation.navigate('Medicines')}>
-        <Text style={styles.buttonText}>Medicines</Text>
-      </Pressable>
+      <View style={styles.overviewCard}>
+        <Text style={styles.cardTitle}>Today's Schedule</Text>
+        <Text style={styles.cardDescription}>
+          The Today dose view and logs will display scheduled medication times and let you record taken or skipped doses.
+        </Text>
+        {profile?.role === 'admin' ? (
+          <Pressable
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('AddMedicine')}
+          >
+            <Text style={styles.actionButtonText}>+ Add a medicine</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
-      <Text style={styles.hint}>
-        Interface polish comes later: keyboard scrolling, password rules, and show-password.
-      </Text>
-
-      {message ? <Text style={styles.feedback}>{message}</Text> : null}
-
-      <Pressable style={styles.secondaryButton} onPress={handleSignOut} disabled={isSigningOut}>
-        {isSigningOut ? (
-          <ActivityIndicator color="#1d4e89" />
-        ) : (
-          <Text style={styles.secondaryButtonText}>Sign out</Text>
-        )}
-      </Pressable>
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Household Information</Text>
+        <Text style={styles.bodyText}>
+          Language: {profile?.language === 'ar' ? 'العربية' : 'Français'}
+        </Text>
+        <Text style={styles.bodyText}>
+          Voice reminders: {profile?.voice_enabled ? 'Enabled' : 'Off'}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -55,60 +62,93 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    padding: 24,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.lg,
   },
-  title: {
-    fontSize: 36,
+  headerCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+  },
+  dateText: {
+    fontSize: theme.typography.label,
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontWeight: '600',
+  },
+  greetingText: {
+    fontSize: theme.typography.section,
+    fontWeight: '800',
+    color: theme.colors.text,
+    marginTop: theme.spacing.xs,
+  },
+  roleBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.radius.full,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginTop: theme.spacing.sm,
+  },
+  roleText: {
+    fontSize: theme.typography.small,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  overviewCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+  },
+  cardTitle: {
+    fontSize: theme.typography.section,
     fontWeight: '700',
-    color: '#14213d',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
   },
-  message: {
-    marginTop: 12,
-    fontSize: 18,
-    color: '#333333',
+  cardDescription: {
+    fontSize: theme.typography.label,
+    color: theme.colors.textMuted,
+    lineHeight: 22,
+    marginBottom: theme.spacing.md,
   },
-  detail: {
-    marginTop: 8,
-    marginBottom: 24,
-    fontSize: 16,
-    color: '#333333',
-  },
-  hint: {
-    marginTop: 16,
-    fontSize: 15,
-    color: '#666666',
-  },
-  feedback: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#14213d',
-  },
-  button: {
-    minHeight: 56,
-    borderRadius: 12,
-    backgroundColor: '#1d4e89',
+  actionButton: {
+    minHeight: theme.touchTarget.minHeight,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 20,
+  actionButtonText: {
+    color: theme.colors.surface,
+    fontSize: theme.typography.body,
     fontWeight: '700',
   },
-  secondaryButton: {
-    marginTop: 16,
-    minHeight: 56,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#1d4e89',
-    alignItems: 'center',
-    justifyContent: 'center',
+  card: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.md,
   },
-  secondaryButtonText: {
-    color: '#1d4e89',
-    fontSize: 18,
+  sectionTitle: {
+    fontSize: theme.typography.label,
     fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
+  },
+  bodyText: {
+    fontSize: theme.typography.label,
+    color: theme.colors.textMuted,
+    marginTop: 4,
   },
 });

@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { theme } from '../constants/theme';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 
@@ -50,6 +51,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       <TextInput
         style={styles.input}
         placeholder="Email"
+        placeholderTextColor={theme.colors.textMuted}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -58,6 +60,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       <TextInput
         style={styles.input}
         placeholder="Password"
+        placeholderTextColor={theme.colors.textMuted}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -67,7 +70,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
       <Pressable style={styles.button} onPress={handleLogin} disabled={isSubmitting}>
         {isSubmitting ? (
-          <ActivityIndicator color="#ffffff" />
+          <ActivityIndicator color={theme.colors.surface} />
         ) : (
           <Text style={styles.buttonText}>Sign in</Text>
         )}
@@ -83,51 +86,55 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.background,
     justifyContent: 'center',
-    padding: 24,
+    padding: theme.spacing.lg,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#14213d',
+    fontSize: theme.typography.title,
+    fontWeight: '800',
+    color: theme.colors.text,
   },
   message: {
-    marginTop: 8,
-    marginBottom: 24,
-    fontSize: 16,
-    color: '#333333',
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.lg,
+    fontSize: theme.typography.body,
+    color: theme.colors.textMuted,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#c5c5c5',
-    borderRadius: 12,
-    minHeight: 56,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    fontSize: 18,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    minHeight: theme.touchTarget.minHeight,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    fontSize: theme.typography.body,
+    color: theme.colors.text,
   },
   feedback: {
-    marginBottom: 12,
-    fontSize: 16,
-    color: '#14213d',
+    marginBottom: theme.spacing.sm,
+    fontSize: theme.typography.label,
+    color: theme.colors.error,
   },
   button: {
-    minHeight: 56,
-    borderRadius: 12,
-    backgroundColor: '#1d4e89',
+    minHeight: theme.touchTarget.minHeight,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: theme.spacing.sm,
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 20,
+    color: theme.colors.surface,
+    fontSize: theme.typography.body,
     fontWeight: '700',
   },
   link: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#1d4e89',
+    marginTop: theme.spacing.lg,
+    fontSize: theme.typography.label,
+    color: theme.colors.primary,
     textAlign: 'center',
+    fontWeight: '600',
   },
 });

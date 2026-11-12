@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { WEEKDAYS } from '../constants/weekdays';
+import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
@@ -159,53 +160,74 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Add medicine</Text>
       <Text style={styles.message}>
-        For {careProfile?.display_name ?? 'your care profile'}. Enter the schedule your clinician
-        already gave you.
+        For {careProfile?.display_name ?? 'your care profile'}. Enter the schedule your clinician already gave you.
       </Text>
 
+      <Text style={styles.fieldLabel}>Medicine Name</Text>
       <TextInput
         style={styles.input}
-        placeholder="Medicine name"
+        placeholder="e.g. Metformin"
+        placeholderTextColor={theme.colors.textMuted}
         value={name}
         onChangeText={setName}
       />
+
+      <Text style={styles.fieldLabel}>Instructions</Text>
       <TextInput
         style={[styles.input, styles.multiline]}
-        placeholder="Instructions written by you or your clinician"
+        placeholder="e.g. Take with a glass of water after meals"
+        placeholderTextColor={theme.colors.textMuted}
         value={instructions}
         onChangeText={setInstructions}
         multiline
       />
+
+      <View style={styles.splitRow}>
+        <View style={styles.splitField}>
+          <Text style={styles.fieldLabel}>Stock Quantity</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="30"
+            placeholderTextColor={theme.colors.textMuted}
+            value={stockQuantity}
+            onChangeText={setStockQuantity}
+            keyboardType="number-pad"
+          />
+        </View>
+        <View style={styles.splitField}>
+          <Text style={styles.fieldLabel}>Low Alert At</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="5"
+            placeholderTextColor={theme.colors.textMuted}
+            value={lowStockThreshold}
+            onChangeText={setLowStockThreshold}
+            keyboardType="number-pad"
+          />
+        </View>
+      </View>
+
+      <Text style={styles.fieldLabel}>Expiry Date (Optional)</Text>
       <TextInput
         style={styles.input}
-        placeholder="Stock quantity"
-        value={stockQuantity}
-        onChangeText={setStockQuantity}
-        keyboardType="number-pad"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Low stock threshold"
-        value={lowStockThreshold}
-        onChangeText={setLowStockThreshold}
-        keyboardType="number-pad"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Expiry date YYYY-MM-DD (optional)"
+        placeholder="YYYY-MM-DD"
+        placeholderTextColor={theme.colors.textMuted}
         value={expiryDate}
         onChangeText={setExpiryDate}
         autoCapitalize="none"
       />
+
+      <Text style={styles.fieldLabel}>Reminder Time</Text>
       <TextInput
         style={styles.input}
-        placeholder="Reminder time HH:MM"
+        placeholder="HH:MM (e.g. 08:00)"
+        placeholderTextColor={theme.colors.textMuted}
         value={timeLocal}
         onChangeText={setTimeLocal}
         autoCapitalize="none"
       />
 
-      <Text style={styles.sectionTitle}>Days</Text>
+      <Text style={styles.sectionTitle}>Repeat on Days</Text>
       <View style={styles.daysRow}>
         {WEEKDAYS.map((day) => {
           const selected = selectedDays.includes(day.value);
@@ -228,7 +250,7 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
 
       <Pressable style={styles.button} onPress={handleSave} disabled={isSubmitting}>
         {isSubmitting ? (
-          <ActivityIndicator color="#ffffff" />
+          <ActivityIndicator color={theme.colors.surface} />
         ) : (
           <Text style={styles.buttonText}>Save medicine</Text>
         )}
@@ -239,80 +261,99 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
-    padding: 24,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.lg,
+    paddingBottom: 48,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#14213d',
+    fontSize: theme.typography.title,
+    fontWeight: '800',
+    color: theme.colors.text,
   },
   message: {
-    marginTop: 8,
-    marginBottom: 24,
-    fontSize: 16,
-    color: '#333333',
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.lg,
+    fontSize: theme.typography.body,
+    color: theme.colors.textMuted,
+  },
+  fieldLabel: {
+    fontSize: theme.typography.label,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#c5c5c5',
-    borderRadius: 12,
-    minHeight: 56,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    fontSize: 18,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    minHeight: theme.touchTarget.minHeight,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    fontSize: theme.typography.body,
+    color: theme.colors.text,
   },
   multiline: {
     minHeight: 96,
-    paddingTop: 16,
+    paddingTop: theme.spacing.md,
     textAlignVertical: 'top',
   },
+  splitRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  splitField: {
+    flex: 1,
+  },
   sectionTitle: {
-    marginTop: 8,
-    marginBottom: 12,
-    fontSize: 18,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+    fontSize: theme.typography.section,
     fontWeight: '700',
-    color: '#14213d',
+    color: theme.colors.text,
   },
   daysRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
   },
   dayChip: {
     borderWidth: 1,
-    borderColor: '#1d4e89',
-    borderRadius: 999,
-    paddingHorizontal: 12,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: 16,
     paddingVertical: 10,
   },
   dayChipSelected: {
-    backgroundColor: '#1d4e89',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   dayChipText: {
-    color: '#1d4e89',
-    fontWeight: '700',
+    color: theme.colors.text,
+    fontWeight: '600',
+    fontSize: theme.typography.label,
   },
   dayChipTextSelected: {
-    color: '#ffffff',
+    color: theme.colors.surface,
   },
   feedback: {
-    marginBottom: 12,
-    fontSize: 16,
-    color: '#14213d',
+    marginBottom: theme.spacing.md,
+    fontSize: theme.typography.label,
+    color: theme.colors.error,
   },
   button: {
-    minHeight: 56,
-    borderRadius: 12,
-    backgroundColor: '#1d4e89',
+    minHeight: theme.touchTarget.minHeight,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 32,
+    marginTop: theme.spacing.sm,
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 20,
+    color: theme.colors.surface,
+    fontSize: theme.typography.body,
     fontWeight: '700',
   },
 });

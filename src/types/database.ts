@@ -43,3 +43,19 @@ export type Schedule = {
 export type MedicationWithSchedules = Medication & {
   schedules: Schedule[];
 };
+
+export type DoseStatus = 'taken' | 'skipped';
+
+export type DoseLog = {
+  id: string;
+  schedule_id: string | null;
+  family_id: string;
+  care_profile_id: string;
+  occurrence_date: string;
+  time_local: string;
+  status: DoseStatus;
+  recorded_by: string | null;
+  medicine_name: string;
+  instructions: string;
+  recorded_at: string;
+};

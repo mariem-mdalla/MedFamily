@@ -1,4 +1,5 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -8,16 +9,15 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { formatWeekdays } from '../constants/weekdays';
+import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 import { MedicationWithSchedules } from '../types/database';
 
-type MedicinesScreenProps = NativeStackScreenProps<RootStackParamList, 'Medicines'>;
-
-export default function MedicinesScreen({ navigation }: MedicinesScreenProps) {
+export default function MedicinesScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile } = useAuth();
   const [medicines, setMedicines] = useState<MedicationWithSchedules[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,15 +60,15 @@ export default function MedicinesScreen({ navigation }: MedicinesScreenProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Medicines</Text>
-      <Text style={styles.message}>Add the medicines and reminder times for your household.</Text>
+      <Text style={styles.message}>Manage the medicines and reminder times for your household.</Text>
 
       {profile?.role === 'admin' ? (
         <Pressable style={styles.button} onPress={() => navigation.navigate('AddMedicine')}>
-          <Text style={styles.buttonText}>Add medicine</Text>
+          <Text style={styles.buttonText}>+ Add medicine</Text>
         </Pressable>
       ) : null}
 
-      {isLoading ? <ActivityIndicator style={styles.loader} color="#1d4e89" /> : null}
+      {isLoading ? <ActivityIndicator style={styles.loader} color={theme.colors.primary} /> : null}
       {message ? <Text style={styles.feedback}>{message}</Text> : null}
 
       <FlatList
@@ -76,20 +76,34 @@ export default function MedicinesScreen({ navigation }: MedicinesScreenProps) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          !isLoading ? <Text style={styles.empty}>No medicines yet.</Text> : null
+          !isLoading ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>No medicines saved yet</Text>
+              <Text style={styles.emptyText}>Tap "+ Add medicine" to set up your first medication and schedule.</Text>
+            </View>
+          ) : undefined
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{item.name}</Text>
             <Text style={styles.cardText}>{item.instructions || 'No instructions saved.'}</Text>
-            <Text style={styles.cardText}>
-              Stock: {item.stock_quantity} · Low under {item.low_stock_threshold}
-            </Text>
-            {item.schedules.map((schedule) => (
-              <Text key={schedule.id} style={styles.scheduleText}>
-                {schedule.time_local} · {formatWeekdays(schedule.weekdays)}
+            <View style={styles.metaRow}>
+              <Text style={styles.stockText}>
+                Stock: {item.stock_quantity} (Alert under {item.low_stock_threshold})
               </Text>
-            ))}
+              {item.expiry_date ? (
+                <Text style={styles.expiryText}>Exp: {item.expiry_date}</Text>
+              ) : null}
+            </View>
+            <View style={styles.schedulesContainer}>
+              {item.schedules.map((schedule) => (
+                <View key={schedule.id} style={styles.scheduleBadge}>
+                  <Text style={styles.scheduleText}>
+                    ⏰ {schedule.time_local} · {formatWeekdays(schedule.weekdays)}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         )}
       />
@@ -100,69 +114,115 @@ export default function MedicinesScreen({ navigation }: MedicinesScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 24,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.lg,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#14213d',
+    fontSize: theme.typography.title,
+    fontWeight: '800',
+    color: theme.colors.text,
   },
   message: {
-    marginTop: 8,
-    marginBottom: 16,
-    fontSize: 16,
-    color: '#333333',
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.md,
+    fontSize: theme.typography.body,
+    color: theme.colors.textMuted,
   },
   button: {
-    minHeight: 56,
-    borderRadius: 12,
-    backgroundColor: '#1d4e89',
+    minHeight: theme.touchTarget.minHeight,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 18,
+    color: theme.colors.surface,
+    fontSize: theme.typography.body,
     fontWeight: '700',
   },
   loader: {
-    marginVertical: 12,
+    marginVertical: theme.spacing.md,
   },
   feedback: {
-    marginBottom: 12,
-    fontSize: 16,
-    color: '#14213d',
+    marginBottom: theme.spacing.sm,
+    fontSize: theme.typography.label,
+    color: theme.colors.error,
   },
   list: {
-    paddingBottom: 24,
+    paddingBottom: theme.spacing.xl,
   },
-  empty: {
-    fontSize: 16,
-    color: '#666666',
+  emptyContainer: {
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.xl,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    marginTop: theme.spacing.md,
+  },
+  emptyTitle: {
+    fontSize: theme.typography.section,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  emptyText: {
+    marginTop: theme.spacing.xs,
+    fontSize: theme.typography.label,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
   },
   card: {
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#d9d9d9',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: theme.typography.section,
     fontWeight: '700',
-    color: '#14213d',
+    color: theme.colors.text,
   },
   cardText: {
-    marginTop: 6,
-    fontSize: 16,
-    color: '#333333',
+    marginTop: theme.spacing.xs,
+    fontSize: theme.typography.label,
+    color: theme.colors.textMuted,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.background,
+  },
+  stockText: {
+    fontSize: theme.typography.small,
+    color: theme.colors.textMuted,
+  },
+  expiryText: {
+    fontSize: theme.typography.small,
+    color: theme.colors.textMuted,
+  },
+  schedulesContainer: {
+    marginTop: theme.spacing.sm,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  scheduleBadge: {
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: theme.radius.full,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   scheduleText: {
-    marginTop: 8,
-    fontSize: 16,
-    color: '#1d4e89',
+    fontSize: theme.typography.small,
+    color: theme.colors.primary,
     fontWeight: '600',
   },
 });
