@@ -1,4 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../constants/theme';
 import { RootStackParamList } from '../navigation/types';
@@ -10,10 +11,10 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoBadge}>
-          <Text style={styles.logoIcon}>🌿</Text>
+          <Ionicons name="medkit-outline" size={32} color={theme.colors.primary} />
         </View>
         <Text style={styles.title}>MedFamily</Text>
-        <Text style={styles.message}>Medication schedules for your household.</Text>
+        <Text style={styles.message}>Keep medicines and schedules in one place.</Text>
 
         <Pressable style={styles.button} onPress={() => navigation.navigate('Register')}>
           <Text style={styles.buttonText}>Create account</Text>
@@ -48,9 +49,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
-  },
-  logoIcon: {
-    fontSize: 36,
   },
   title: {
     fontSize: 40,

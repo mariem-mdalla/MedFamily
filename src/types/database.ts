@@ -26,8 +26,8 @@ export type Medication = {
   care_profile_id: string;
   name: string;
   instructions: string;
-  stock_quantity: number;
-  low_stock_threshold: number;
+  stock_quantity: number | null;
+  low_stock_threshold: number | null;
   expiry_date: string | null;
 };
 
@@ -36,9 +36,13 @@ export type Schedule = {
   family_id: string;
   medication_id: string;
   time_local: string;
+  recurrence: ScheduleRecurrence;
   weekdays: number[];
+  day_of_month: number | null;
   timezone: string;
 };
+
+export type ScheduleRecurrence = 'daily' | 'weekly' | 'monthly';
 
 export type MedicationWithSchedules = Medication & {
   schedules: Schedule[];

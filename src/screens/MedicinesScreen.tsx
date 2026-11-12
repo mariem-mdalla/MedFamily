@@ -1,5 +1,6 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,7 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { formatWeekdays } from '../constants/weekdays';
+import { formatScheduleRepeat } from '../constants/weekdays';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -36,7 +37,7 @@ export default function MedicinesScreen() {
     const { data, error } = await supabase
       .from('medications')
       .select(
-        'id, family_id, care_profile_id, name, instructions, stock_quantity, low_stock_threshold, expiry_date, schedules(id, family_id, medication_id, time_local, weekdays, timezone)',
+        'id, family_id, care_profile_id, name, instructions, stock_quantity, low_stock_threshold, expiry_date, schedules(id, family_id, medication_id, time_local, recurrence, weekdays, day_of_month, timezone)',
       )
       .eq('family_id', profile.family_id)
       .order('name');
@@ -89,7 +90,9 @@ export default function MedicinesScreen() {
             <Text style={styles.cardText}>{item.instructions || 'No instructions saved.'}</Text>
             <View style={styles.metaRow}>
               <Text style={styles.stockText}>
-                Stock: {item.stock_quantity} (Alert under {item.low_stock_threshold})
+                {item.stock_quantity === null || item.low_stock_threshold === null
+                  ? 'Stock not tracked'
+                  : `Stock: ${item.stock_quantity} · Alert under ${item.low_stock_threshold}`}
               </Text>
               {item.expiry_date ? (
                 <Text style={styles.expiryText}>Exp: {item.expiry_date}</Text>
@@ -99,7 +102,8 @@ export default function MedicinesScreen() {
               {item.schedules.map((schedule) => (
                 <View key={schedule.id} style={styles.scheduleBadge}>
                   <Text style={styles.scheduleText}>
-                    ⏰ {schedule.time_local} · {formatWeekdays(schedule.weekdays)}
+                    <Ionicons name="time-outline" size={14} color={theme.colors.primary} />{' '}
+                    {schedule.time_local} · {formatScheduleRepeat(schedule.recurrence, schedule.weekdays, schedule.day_of_month)}
                   </Text>
                 </View>
               ))}

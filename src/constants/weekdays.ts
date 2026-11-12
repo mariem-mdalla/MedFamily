@@ -13,3 +13,19 @@ export function formatWeekdays(weekdays: number[]) {
     .map((day) => day.label)
     .join(', ');
 }
+
+export function formatScheduleRepeat(
+  recurrence: 'daily' | 'weekly' | 'monthly',
+  weekdays: number[],
+  dayOfMonth: number | null,
+) {
+  if (recurrence === 'daily' || (recurrence === 'weekly' && weekdays.length === 7)) {
+    return 'Every day';
+  }
+
+  if (recurrence === 'monthly') {
+    return `Day ${dayOfMonth} of each month`;
+  }
+
+  return formatWeekdays(weekdays);
+}

@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
@@ -9,8 +10,6 @@ export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile, session } = useAuth();
 
-  const currentHour = new Date().getHours();
-  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
   const todayFormatted = new Date().toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'short',
@@ -21,9 +20,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <View style={styles.headerCard}>
         <Text style={styles.dateText}>{todayFormatted}</Text>
-        <Text style={styles.greetingText}>
-          {greeting}, {profile?.display_name ?? session?.user.email ?? 'friend'}
-        </Text>
+        <Text style={styles.greetingText}>Hi, {profile?.display_name ?? session?.user.email ?? 'there'}</Text>
         <View style={styles.roleBadge}>
           <Text style={styles.roleText}>
             {profile?.role === 'admin' ? 'Household Admin' : 'Family Member'}
@@ -32,28 +29,27 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.overviewCard}>
-        <Text style={styles.cardTitle}>Today's Schedule</Text>
+        <View style={styles.overviewHeading}>
+          <View style={styles.overviewIcon}>
+            <Ionicons name="medkit-outline" size={24} color={theme.colors.primary} />
+          </View>
+          <Text style={styles.cardTitle}>
+            {profile?.role === 'admin' ? 'Manage medicines' : 'Your schedule'}
+          </Text>
+        </View>
         <Text style={styles.cardDescription}>
-          The Today dose view and logs will display scheduled medication times and let you record taken or skipped doses.
+          {profile?.role === 'admin'
+            ? 'Add medicines and schedules your household already follows. Review saved medicines in the Medicines tab.'
+            : 'Your household admin manages your medicine schedule. Contact them if a medicine or time is missing.'}
         </Text>
         {profile?.role === 'admin' ? (
           <Pressable
             style={styles.actionButton}
             onPress={() => navigation.navigate('AddMedicine')}
           >
-            <Text style={styles.actionButtonText}>+ Add a medicine</Text>
+            <Text style={styles.actionButtonText}>Add a medicine</Text>
           </Pressable>
         ) : null}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Household Information</Text>
-        <Text style={styles.bodyText}>
-          Language: {profile?.language === 'ar' ? 'العربية' : 'Français'}
-        </Text>
-        <Text style={styles.bodyText}>
-          Voice reminders: {profile?.voice_enabled ? 'Enabled' : 'Off'}
-        </Text>
       </View>
     </View>
   );
@@ -115,6 +111,20 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
   },
+  overviewHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  overviewIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing.sm,
+  },
   cardDescription: {
     fontSize: theme.typography.label,
     color: theme.colors.textMuted,
@@ -132,23 +142,5 @@ const styles = StyleSheet.create({
     color: theme.colors.surface,
     fontSize: theme.typography.body,
     fontWeight: '700',
-  },
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: theme.spacing.md,
-  },
-  sectionTitle: {
-    fontSize: theme.typography.label,
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
-  },
-  bodyText: {
-    fontSize: theme.typography.label,
-    color: theme.colors.textMuted,
-    marginTop: 4,
   },
 });

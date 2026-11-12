@@ -11,10 +11,11 @@ import {
 } from 'react-native';
 import { WEEKDAYS } from '../constants/weekdays';
 import { theme } from '../constants/theme';
+import { scheduleMedicationReminder } from '../lib/medicationReminders';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
-import { CareProfile } from '../types/database';
+import { CareProfile, ScheduleRecurrence } from '../types/database';
 
 type AddMedicineScreenProps = NativeStackScreenProps<RootStackParamList, 'AddMedicine'>;
 
@@ -23,13 +24,16 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
   const [careProfile, setCareProfile] = useState<CareProfile | null>(null);
   const [name, setName] = useState('');
   const [instructions, setInstructions] = useState('');
-  const [stockQuantity, setStockQuantity] = useState('30');
-  const [lowStockThreshold, setLowStockThreshold] = useState('5');
+  const [stockQuantity, setStockQuantity] = useState('');
+  const [lowStockThreshold, setLowStockThreshold] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
-  const [timeLocal, setTimeLocal] = useState('08:00');
-  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
+  const [timeLocal, setTimeLocal] = useState('');
+  const [recurrence, setRecurrence] = useState<ScheduleRecurrence | null>(null);
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const [dayOfMonth, setDayOfMonth] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveComplete, setSaveComplete] = useState(false);
 
   useEffect(() => {
     async function loadCareProfile() {
@@ -70,6 +74,11 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
   }
 
   async function handleSave() {
+    if (saveComplete) {
+      navigation.goBack();
+      return;
+    }
+
     if (!profile || !careProfile) {
       setMessage('Your household profile is not ready yet.');
       return;
@@ -81,8 +90,11 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
     }
 
     const trimmedName = name.trim();
-    const stock = Number(stockQuantity);
-    const threshold = Number(lowStockThreshold);
+    const stockText = stockQuantity.trim();
+    const thresholdText = lowStockThreshold.trim();
+    const stock = stockText ? Number(stockText) : null;
+    const threshold = thresholdText ? Number(thresholdText) : null;
+    const monthlyDay = dayOfMonth.trim() ? Number(dayOfMonth) : null;
     const timePattern = /^\d{2}:\d{2}$/;
 
     if (!trimmedName) {
@@ -90,23 +102,34 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
       return;
     }
 
-    if (!Number.isInteger(stock) || stock < 0) {
-      setMessage('Stock must be a whole number 0 or more.');
+    if ((stockText && (!Number.isInteger(stock) || (stock ?? -1) < 0)) || (thresholdText && (!Number.isInteger(threshold) || (threshold ?? -1) < 0))) {
+      setMessage('Stock values must be whole numbers 0 or more.');
       return;
     }
 
-    if (!Number.isInteger(threshold) || threshold < 0) {
-      setMessage('Low stock threshold must be a whole number 0 or more.');
+    if (Boolean(stockText) !== Boolean(thresholdText)) {
+      setMessage('Enter both stock values, or leave both empty to skip stock tracking.');
       return;
     }
 
-    if (!timePattern.test(timeLocal)) {
-      setMessage('Use time as HH:MM, for example 08:00.');
+    const [hour, minute] = timeLocal.split(':').map(Number);
+    if (!timePattern.test(timeLocal) || hour > 23 || minute > 59) {
+      setMessage('Enter a valid reminder time in 24-hour format, such as 08:30.');
       return;
     }
 
-    if (selectedDays.length === 0) {
+    if (!recurrence) {
+      setMessage('Choose how often the reminder should repeat.');
+      return;
+    }
+
+    if (recurrence === 'weekly' && selectedDays.length === 0) {
       setMessage('Select at least one day.');
+      return;
+    }
+
+    if (recurrence === 'monthly' && (!Number.isInteger(monthlyDay) || monthlyDay === null || monthlyDay < 1 || monthlyDay > 28)) {
+      setMessage('Choose a day from 1 to 28 so it exists every month.');
       return;
     }
 
@@ -138,35 +161,60 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
       return;
     }
 
-    const { error: scheduleError } = await supabase.from('schedules').insert({
+    const { data: savedSchedule, error: scheduleError } = await supabase.from('schedules').insert({
       family_id: profile.family_id,
       medication_id: medication.id,
       time_local: timeLocal,
-      weekdays: selectedDays,
+      recurrence,
+      weekdays: recurrence === 'weekly' ? selectedDays : [],
+      day_of_month: recurrence === 'monthly' ? monthlyDay : null,
       timezone: 'Africa/Tunis',
-    });
+    }).select('id').single();
 
-    setIsSubmitting(false);
-
-    if (scheduleError) {
+    if (scheduleError || !savedSchedule) {
+      setIsSubmitting(false);
       setMessage(scheduleError.message);
       return;
     }
 
-    navigation.goBack();
+    try {
+      const reminderScheduled = await scheduleMedicationReminder({
+        medicationName: trimmedName,
+        instructions: instructions.trim(),
+        timeLocal,
+        recurrence,
+        weekdays: recurrence === 'weekly' ? selectedDays : [],
+        dayOfMonth: recurrence === 'monthly' ? monthlyDay : null,
+        language: profile.language,
+        scheduleId: savedSchedule.id,
+      });
+
+      setIsSubmitting(false);
+      if (reminderScheduled) {
+        navigation.goBack();
+        return;
+      }
+
+      setSaveComplete(true);
+      setMessage('Medicine saved, but notifications are disabled. Allow them in your phone settings to receive reminders.');
+    } catch {
+      setIsSubmitting(false);
+      setSaveComplete(true);
+      setMessage('Medicine saved, but this phone could not schedule the reminder. Check notification permissions.');
+    }
   }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Add medicine</Text>
       <Text style={styles.message}>
-        For {careProfile?.display_name ?? 'your care profile'}. Enter the schedule your clinician already gave you.
+        For {careProfile?.display_name ?? 'your care profile'}. Enter the medicine and reminder schedule you want to save.
       </Text>
 
       <Text style={styles.fieldLabel}>Medicine Name</Text>
       <TextInput
         style={styles.input}
-        placeholder="e.g. Metformin"
+        placeholder="Medicine name"
         placeholderTextColor={theme.colors.textMuted}
         value={name}
         onChangeText={setName}
@@ -175,7 +223,7 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
       <Text style={styles.fieldLabel}>Instructions</Text>
       <TextInput
         style={[styles.input, styles.multiline]}
-        placeholder="e.g. Take with a glass of water after meals"
+        placeholder="Optional instructions from your clinician"
         placeholderTextColor={theme.colors.textMuted}
         value={instructions}
         onChangeText={setInstructions}
@@ -184,10 +232,10 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
 
       <View style={styles.splitRow}>
         <View style={styles.splitField}>
-          <Text style={styles.fieldLabel}>Stock Quantity</Text>
+          <Text style={styles.fieldLabel}>Stock quantity (optional)</Text>
           <TextInput
             style={styles.input}
-            placeholder="30"
+            placeholder="Enter current quantity"
             placeholderTextColor={theme.colors.textMuted}
             value={stockQuantity}
             onChangeText={setStockQuantity}
@@ -195,10 +243,10 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
           />
         </View>
         <View style={styles.splitField}>
-          <Text style={styles.fieldLabel}>Low Alert At</Text>
+          <Text style={styles.fieldLabel}>Low stock alert (optional)</Text>
           <TextInput
             style={styles.input}
-            placeholder="5"
+            placeholder="Enter alert quantity"
             placeholderTextColor={theme.colors.textMuted}
             value={lowStockThreshold}
             onChangeText={setLowStockThreshold}
@@ -217,34 +265,69 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
         autoCapitalize="none"
       />
 
-      <Text style={styles.fieldLabel}>Reminder Time</Text>
+      <Text style={styles.fieldLabel}>Reminder time</Text>
       <TextInput
         style={styles.input}
-        placeholder="HH:MM (e.g. 08:00)"
+        placeholder="24-hour time, e.g. 08:30"
         placeholderTextColor={theme.colors.textMuted}
         value={timeLocal}
         onChangeText={setTimeLocal}
         autoCapitalize="none"
       />
 
-      <Text style={styles.sectionTitle}>Repeat on Days</Text>
-      <View style={styles.daysRow}>
-        {WEEKDAYS.map((day) => {
-          const selected = selectedDays.includes(day.value);
-
-          return (
-            <Pressable
-              key={day.value}
-              style={[styles.dayChip, selected ? styles.dayChipSelected : null]}
-              onPress={() => toggleDay(day.value)}
-            >
-              <Text style={[styles.dayChipText, selected ? styles.dayChipTextSelected : null]}>
-                {day.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+      <Text style={styles.sectionTitle}>Repeat</Text>
+      <View style={styles.recurrenceRow}>
+        {([
+          { value: 'daily', label: 'Every day' },
+          { value: 'weekly', label: 'Selected days' },
+          { value: 'monthly', label: 'Monthly' },
+        ] as const).map((option) => (
+          <Pressable
+            key={option.value}
+            style={[styles.recurrenceChip, recurrence === option.value ? styles.dayChipSelected : null]}
+            onPress={() => setRecurrence(option.value)}
+          >
+            <Text style={[styles.dayChipText, recurrence === option.value ? styles.dayChipTextSelected : null]}>
+              {option.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
+
+      {recurrence === 'weekly' ? (
+        <View style={styles.daysRow}>
+          {WEEKDAYS.map((day) => {
+            const selected = selectedDays.includes(day.value);
+
+            return (
+              <Pressable
+                key={day.value}
+                style={[styles.dayChip, selected ? styles.dayChipSelected : null]}
+                onPress={() => toggleDay(day.value)}
+              >
+                <Text style={[styles.dayChipText, selected ? styles.dayChipTextSelected : null]}>
+                  {day.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {recurrence === 'monthly' ? (
+        <View>
+          <Text style={styles.fieldLabel}>Day of the month</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Choose 1 to 28"
+            placeholderTextColor={theme.colors.textMuted}
+            value={dayOfMonth}
+            onChangeText={setDayOfMonth}
+            keyboardType="number-pad"
+          />
+          <Text style={styles.helperText}>Choose 1–28 so the reminder date exists every month.</Text>
+        </View>
+      ) : null}
 
       {message ? <Text style={styles.feedback}>{message}</Text> : null}
 
@@ -252,7 +335,7 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
         {isSubmitting ? (
           <ActivityIndicator color={theme.colors.surface} />
         ) : (
-          <Text style={styles.buttonText}>Save medicine</Text>
+          <Text style={styles.buttonText}>{saveComplete ? 'Done' : 'Save medicine'}</Text>
         )}
       </Pressable>
     </ScrollView>
@@ -318,6 +401,21 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     marginBottom: theme.spacing.lg,
   },
+  recurrenceRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+  },
+  recurrenceChip: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    minHeight: theme.touchTarget.minHeight,
+    paddingHorizontal: theme.spacing.md,
+    justifyContent: 'center',
+  },
   dayChip: {
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -337,6 +435,12 @@ const styles = StyleSheet.create({
   },
   dayChipTextSelected: {
     color: theme.colors.surface,
+  },
+  helperText: {
+    marginTop: -theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.small,
   },
   feedback: {
     marginBottom: theme.spacing.md,
