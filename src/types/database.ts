@@ -20,11 +20,15 @@ export type CareProfile = {
   linked_user_id: string | null;
 };
 
+export type MedicationForm = 'pill' | 'liquid' | 'drops' | 'injection' | 'other';
+
 export type Medication = {
   id: string;
   family_id: string;
   care_profile_id: string;
   name: string;
+  form: MedicationForm;
+  dose_amount: string | null;
   instructions: string;
   stock_quantity: number | null;
   low_stock_threshold: number | null;

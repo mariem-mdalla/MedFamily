@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 
 type ReminderSchedule = {
   medicationName: string;
+  doseAmount: string | null;
   instructions: string;
   timeLocal: string;
   recurrence: 'daily' | 'weekly' | 'monthly';
@@ -13,6 +14,17 @@ type ReminderSchedule = {
 };
 
 const CHANNEL_ID = 'medication-reminders';
+
+export async function cancelScheduledRemindersForIds(scheduleIds: string[]): Promise<void> {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+
+  const toCancel = scheduled.filter((n) => {
+    const id = n.content.data?.scheduleId as string | undefined;
+    return id !== undefined && scheduleIds.includes(id);
+  });
+
+  await Promise.all(toCancel.map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)));
+}
 
 export async function scheduleMedicationReminder(schedule: ReminderSchedule) {
   if (Platform.OS === 'android') {
@@ -36,10 +48,14 @@ export async function scheduleMedicationReminder(schedule: ReminderSchedule) {
 
   const [hour, minute] = schedule.timeLocal.split(':').map(Number);
   const title = schedule.language === 'ar' ? 'تذكير بالدواء' : 'Rappel de médicament';
-  const reminder = schedule.language === 'ar'
-    ? `حان وقت تناول ${schedule.medicationName}.`
-    : `C'est l'heure de prendre ${schedule.medicationName}.`;
-  const body = schedule.instructions ? `${reminder} ${schedule.instructions}` : reminder;
+
+  const doseHint = schedule.doseAmount ? ` (${schedule.doseAmount})` : '';
+  const reminderBase =
+    schedule.language === 'ar'
+      ? `حان وقت تناول ${schedule.medicationName}${doseHint}.`
+      : `C'est l'heure de prendre ${schedule.medicationName}${doseHint}.`;
+
+  const body = schedule.instructions ? `${reminderBase} ${schedule.instructions}` : reminderBase;
   const content = {
     title,
     body,
@@ -93,3 +109,4 @@ export async function scheduleMedicationReminder(schedule: ReminderSchedule) {
 
   return true;
 }
+

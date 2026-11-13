@@ -14,6 +14,7 @@ import {
 import { formatScheduleRepeat } from '../constants/weekdays';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { cancelScheduledRemindersForIds } from '../lib/medicationReminders';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 import { MedicationWithSchedules } from '../types/database';
@@ -41,7 +42,7 @@ export default function MedicinesScreen() {
     const { data, error } = await supabase
       .from('medications')
       .select(
-        'id, family_id, care_profile_id, name, instructions, stock_quantity, low_stock_threshold, expiry_date, schedules(id, family_id, medication_id, time_local, recurrence, weekdays, day_of_month, timezone)',
+        'id, family_id, care_profile_id, name, form, dose_amount, instructions, stock_quantity, low_stock_threshold, expiry_date, schedules(id, family_id, medication_id, time_local, recurrence, weekdays, day_of_month, timezone)',
       )
       .eq('family_id', profile.family_id)
       .order('name');
@@ -74,6 +75,11 @@ export default function MedicinesScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            try {
+              await cancelScheduledRemindersForIds(med.schedules.map((s) => s.id));
+            } catch {
+            }
+
             const { error } = await supabase
               .from('medications')
               .delete()
