@@ -1,9 +1,14 @@
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { RootStackParamList } from '../navigation/types';
 
 export default function SettingsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile, session, signOut } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -20,7 +25,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.card}>
         <Text style={styles.sectionHeader}>Profile</Text>
         <View style={styles.row}>
@@ -42,6 +47,22 @@ export default function SettingsScreen() {
           <Text style={styles.value}>{profile?.language === 'ar' ? 'العربية' : 'Français'}</Text>
         </View>
       </View>
+
+      {profile?.role === 'admin' ? (
+        <View style={styles.card}>
+          <Text style={styles.sectionHeader}>Household</Text>
+          <Pressable
+            style={styles.actionRow}
+            onPress={() => navigation.navigate('ManageInvites')}
+          >
+            <View style={styles.actionLeft}>
+              <Ionicons name="ticket-outline" size={20} color={theme.colors.primary} />
+              <Text style={styles.actionText}>Manage invite codes</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.card}>
         <Text style={styles.sectionHeader}>Preferences</Text>
@@ -68,15 +89,15 @@ export default function SettingsScreen() {
           <Text style={styles.signOutText}>Sign out</Text>
         )}
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: theme.colors.background,
     padding: theme.spacing.lg,
+    paddingBottom: 48,
   },
   card: {
     backgroundColor: theme.colors.surface,
@@ -99,6 +120,23 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.background,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+    minHeight: theme.touchTarget.minTarget,
+  },
+  actionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  actionText: {
+    fontSize: theme.typography.label,
+    fontWeight: '600',
+    color: theme.colors.text,
   },
   label: {
     fontSize: theme.typography.label,

@@ -58,7 +58,7 @@ export type DoseLog = {
   id: string;
   schedule_id: string | null;
   family_id: string;
-  care_profile_id: string;
+  care_profile_id: string | null;
   occurrence_date: string;
   time_local: string;
   status: DoseStatus;
@@ -66,4 +66,18 @@ export type DoseLog = {
   medicine_name: string;
   instructions: string;
   recorded_at: string;
+};
+
+export type Invite = {
+  id: string;
+  family_id: string;
+  code: string;
+  role: 'admin' | 'member';
+  care_profile_id: string | null;
+  created_by: string;
+  expires_at: string;
+  single_use: boolean;
+  used_at: string | null;
+  used_by: string | null;
+  created_at: string;
 };

@@ -3,8 +3,12 @@ import { ActivityIndicator, View } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import AddMedicineScreen from '../screens/AddMedicineScreen';
+import AddPersonScreen from '../screens/AddPersonScreen';
 import EditMedicineScreen from '../screens/EditMedicineScreen';
+import EditPersonScreen from '../screens/EditPersonScreen';
+import JoinWithCodeScreen from '../screens/JoinWithCodeScreen';
 import LoginScreen from '../screens/LoginScreen';
+import ManageInvitesScreen from '../screens/ManageInvitesScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import AdminTabNavigator from './AdminTabNavigator';
@@ -67,6 +71,21 @@ export default function RootNavigator() {
             component={EditMedicineScreen}
             options={{ title: 'Edit medicine' }}
           />
+          <Stack.Screen
+            name="AddPerson"
+            component={AddPersonScreen}
+            options={{ title: 'Add person' }}
+          />
+          <Stack.Screen
+            name="EditPerson"
+            component={EditPersonScreen}
+            options={{ title: 'Edit person' }}
+          />
+          <Stack.Screen
+            name="ManageInvites"
+            component={ManageInvitesScreen}
+            options={{ title: 'Invite codes' }}
+          />
         </>
       ) : (
         <>
@@ -84,6 +103,11 @@ export default function RootNavigator() {
             name="Login"
             component={LoginScreen}
             options={{ title: 'Sign in' }}
+          />
+          <Stack.Screen
+            name="JoinWithCode"
+            component={JoinWithCodeScreen}
+            options={{ title: 'Join with code' }}
           />
         </>
       )}

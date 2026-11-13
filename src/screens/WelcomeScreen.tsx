@@ -23,6 +23,11 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate('Login')}>
           <Text style={styles.secondaryButtonText}>I already have an account</Text>
         </Pressable>
+
+        <Pressable style={styles.inviteButton} onPress={() => navigation.navigate('JoinWithCode')}>
+          <Ionicons name="ticket-outline" size={18} color={theme.colors.primary} />
+          <Text style={styles.inviteButtonText}>Join with invite code</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -94,6 +99,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryButtonText: {
+    color: theme.colors.primary,
+    fontSize: theme.typography.body,
+    fontWeight: '700',
+  },
+  inviteButton: {
+    width: '100%',
+    marginTop: theme.spacing.md,
+    minHeight: theme.touchTarget.minHeight,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  inviteButtonText: {
     color: theme.colors.primary,
     fontSize: theme.typography.body,
     fontWeight: '700',

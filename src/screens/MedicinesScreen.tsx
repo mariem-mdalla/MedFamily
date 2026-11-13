@@ -23,6 +23,9 @@ export default function MedicinesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile } = useAuth();
   const [medicines, setMedicines] = useState<MedicationWithSchedules[]>([]);
+  const [careProfilesMap, setCareProfilesMap] = useState<Map<string, { name: string; color: string }>>(
+    new Map(),
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
   const hasLoadedRef = useRef(false);
@@ -39,22 +42,35 @@ export default function MedicinesScreen() {
     }
     setMessage('');
 
-    const { data, error } = await supabase
-      .from('medications')
-      .select(
-        'id, family_id, care_profile_id, name, form, dose_amount, instructions, stock_quantity, low_stock_threshold, expiry_date, schedules(id, family_id, medication_id, time_local, recurrence, weekdays, day_of_month, timezone)',
-      )
-      .eq('family_id', profile.family_id)
-      .order('name');
+    const [medsResult, cpResult] = await Promise.all([
+      supabase
+        .from('medications')
+        .select(
+          'id, family_id, care_profile_id, name, form, dose_amount, instructions, stock_quantity, low_stock_threshold, expiry_date, schedules(id, family_id, medication_id, time_local, recurrence, weekdays, day_of_month, timezone)',
+        )
+        .eq('family_id', profile.family_id)
+        .order('name'),
+      supabase
+        .from('care_profiles')
+        .select('id, display_name, color')
+        .eq('family_id', profile.family_id),
+    ]);
 
     setIsLoading(false);
 
-    if (error) {
-      setMessage(error.message);
+    if (medsResult.error) {
+      setMessage(medsResult.error.message);
       return;
     }
 
-    setMedicines((data as MedicationWithSchedules[]) ?? []);
+    const map = new Map<string, { name: string; color: string }>();
+    if (cpResult.data) {
+      for (const cp of cpResult.data) {
+        map.set(cp.id, { name: cp.display_name, color: cp.color });
+      }
+    }
+    setCareProfilesMap(map);
+    setMedicines((medsResult.data as MedicationWithSchedules[]) ?? []);
   }
 
   useFocusEffect(
@@ -126,54 +142,69 @@ export default function MedicinesScreen() {
             </View>
           ) : undefined
         }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{item.name}</Text>
-              {profile?.role === 'admin' ? (
-                <View style={styles.cardActions}>
-                  <Pressable
-                    style={styles.iconBtn}
-                    onPress={() => navigation.navigate('EditMedicine', { medicationId: item.id })}
-                    hitSlop={8}
-                  >
-                    <Ionicons name="pencil-outline" size={20} color={theme.colors.primary} />
-                  </Pressable>
-                  <Pressable style={styles.iconBtn} onPress={() => handleDelete(item)} hitSlop={8}>
-                    <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
+        renderItem={({ item }) => {
+          const personInfo = careProfilesMap.get(item.care_profile_id) ?? {
+            name: profile?.display_name ?? 'Household',
+            color: theme.colors.primary,
+          };
+          const initial = personInfo.name.charAt(0).toUpperCase();
 
-            {item.instructions ? (
-              <Text style={styles.cardText}>{item.instructions}</Text>
-            ) : (
-              <Text style={[styles.cardText, styles.cardTextMuted]}>No instructions saved.</Text>
-            )}
+          return (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{item.name}</Text>
+                {profile?.role === 'admin' ? (
+                  <View style={styles.cardActions}>
+                    <Pressable
+                      style={styles.iconBtn}
+                      onPress={() => navigation.navigate('EditMedicine', { medicationId: item.id })}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="pencil-outline" size={20} color={theme.colors.primary} />
+                    </Pressable>
+                    <Pressable style={styles.iconBtn} onPress={() => handleDelete(item)} hitSlop={8}>
+                      <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+                    </Pressable>
+                  </View>
+                ) : null}
+              </View>
 
-            <View style={styles.metaRow}>
-              {item.expiry_date ? (
-                <View style={styles.metaBadge}>
-                  <Ionicons name="calendar-outline" size={12} color={theme.colors.textMuted} />
-                  <Text style={styles.expiryText}>Exp: {item.expiry_date}</Text>
+              <View style={styles.personRow}>
+                <View style={[styles.personAvatar, { backgroundColor: personInfo.color }]}>
+                  <Text style={styles.personAvatarText}>{initial}</Text>
                 </View>
-              ) : null}
-            </View>
+                <Text style={styles.personText}>For {personInfo.name}</Text>
+              </View>
 
-            <View style={styles.schedulesContainer}>
-              {item.schedules.map((schedule) => (
-                <View key={schedule.id} style={styles.scheduleBadge}>
-                  <Ionicons name="time-outline" size={13} color={theme.colors.primary} />
-                  <Text style={styles.scheduleText}>
-                    {schedule.time_local} ·{' '}
-                    {formatScheduleRepeat(schedule.recurrence, schedule.weekdays, schedule.day_of_month)}
-                  </Text>
-                </View>
-              ))}
+              {item.instructions ? (
+                <Text style={styles.cardText}>{item.instructions}</Text>
+              ) : (
+                <Text style={[styles.cardText, styles.cardTextMuted]}>No instructions saved.</Text>
+              )}
+
+              <View style={styles.metaRow}>
+                {item.expiry_date ? (
+                  <View style={styles.metaBadge}>
+                    <Ionicons name="calendar-outline" size={12} color={theme.colors.textMuted} />
+                    <Text style={styles.expiryText}>Exp: {item.expiry_date}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.schedulesContainer}>
+                {item.schedules.map((schedule) => (
+                  <View key={schedule.id} style={styles.scheduleBadge}>
+                    <Ionicons name="time-outline" size={13} color={theme.colors.primary} />
+                    <Text style={styles.scheduleText}>
+                      {schedule.time_local} ·{' '}
+                      {formatScheduleRepeat(schedule.recurrence, schedule.weekdays, schedule.day_of_month)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
-          </View>
-        )}
+          );
+        }}
       />
     </View>
   );
@@ -265,6 +296,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
+  },
+  personRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  personAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  personText: {
+    fontSize: theme.typography.small,
+    color: theme.colors.textMuted,
+    fontWeight: '600',
   },
   iconBtn: {
     width: 36,

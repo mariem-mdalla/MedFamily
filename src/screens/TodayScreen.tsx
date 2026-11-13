@@ -84,13 +84,17 @@ export default function TodayScreen() {
 
     const { data: careProfilesData } = await supabase
       .from('care_profiles')
-      .select('id, display_name, color')
+      .select('id, display_name, color, linked_user_id')
       .eq('family_id', profile.family_id);
 
     const profilesMap = new Map<string, { name: string; color: string }>();
+    let memberCareProfileId: string | null = null;
     if (careProfilesData) {
       for (const cp of careProfilesData) {
         profilesMap.set(cp.id, { name: cp.display_name, color: cp.color });
+        if (cp.linked_user_id === profile.id) {
+          memberCareProfileId = cp.id;
+        }
       }
     }
 
@@ -134,6 +138,10 @@ export default function TodayScreen() {
     const typedMeds = (medsData as unknown as MedicationWithSchedules[]) ?? [];
 
     for (const med of typedMeds) {
+      if (profile.role === 'member' && memberCareProfileId && med.care_profile_id !== memberCareProfileId) {
+        continue;
+      }
+
       if (!med.schedules || med.schedules.length === 0) {
         continue;
       }
@@ -366,7 +374,11 @@ export default function TodayScreen() {
             <Text style={styles.medicineTitle}>{item.medicineName}</Text>
 
             <View style={styles.personRow}>
-              <Ionicons name="person-outline" size={14} color={theme.colors.textMuted} />
+              <View style={[styles.personAvatar, { backgroundColor: item.careProfileColor }]}>
+                <Text style={styles.personAvatarText}>
+                  {item.careProfileName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
               <Text style={styles.personText}>For {item.careProfileName}</Text>
             </View>
 
@@ -602,13 +614,25 @@ const styles = StyleSheet.create({
   personRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: 6,
+    marginTop: 6,
+  },
+  personAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
   personText: {
     fontSize: theme.typography.small,
     color: theme.colors.textMuted,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   instructionsBox: {
     flexDirection: 'row',

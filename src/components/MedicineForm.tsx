@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { WEEKDAYS } from '../constants/weekdays';
 import { theme } from '../constants/theme';
-import { MedicationForm, ScheduleRecurrence } from '../types/database';
+import { CareProfile, MedicationForm, ScheduleRecurrence } from '../types/database';
 
 export type MedicineFormValues = {
   name: string;
@@ -25,6 +25,7 @@ export type MedicineFormValues = {
   expiryDate: string;
   stockQuantity: string;
   lowStockThreshold: string;
+  careProfileId: string;
 };
 
 export const DEFAULT_FORM_VALUES: MedicineFormValues = {
@@ -39,6 +40,7 @@ export const DEFAULT_FORM_VALUES: MedicineFormValues = {
   expiryDate: '',
   stockQuantity: '',
   lowStockThreshold: '',
+  careProfileId: '',
 };
 
 type FormOption = {
@@ -67,7 +69,7 @@ const PRESETS = [
 
 type MedicineFormProps = {
   initialValues: MedicineFormValues;
-  careProfileName: string;
+  careProfiles: CareProfile[];
   onSave: (values: MedicineFormValues) => Promise<string | null>;
   submitLabel: string;
   notificationNote?: string | null;
@@ -75,7 +77,7 @@ type MedicineFormProps = {
 
 export default function MedicineForm({
   initialValues,
-  careProfileName,
+  careProfiles,
   onSave,
   submitLabel,
   notificationNote,
@@ -91,6 +93,9 @@ export default function MedicineForm({
   const [expiryDate, setExpiryDate] = useState(initialValues.expiryDate);
   const [stockQuantity, setStockQuantity] = useState(initialValues.stockQuantity);
   const [lowStockThreshold, setLowStockThreshold] = useState(initialValues.lowStockThreshold);
+  const [careProfileId, setCareProfileId] = useState(
+    initialValues.careProfileId || (careProfiles[0]?.id ?? ''),
+  );
 
   const initialTimeParts = initialValues.timeLocal.split(':');
   const [selectedHour, setSelectedHour] = useState(parseInt(initialTimeParts[0] ?? '8', 10));
@@ -201,6 +206,7 @@ export default function MedicineForm({
       expiryDate,
       stockQuantity,
       lowStockThreshold,
+      careProfileId,
     });
 
     setIsSubmitting(false);
@@ -212,9 +218,31 @@ export default function MedicineForm({
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.subtitle}>
-        For {careProfileName}. Changes apply to future reminders only.
-      </Text>
+      {careProfiles.length > 0 ? (
+        <View style={styles.whoSection}>
+          <Text style={styles.fieldLabel}>Who is it for?</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.whoRow}>
+            {careProfiles.map((cp) => {
+              const isSelected = careProfileId === cp.id;
+              const initial = cp.display_name.charAt(0).toUpperCase();
+              return (
+                <Pressable
+                  key={cp.id}
+                  style={[styles.whoChip, isSelected ? styles.whoChipSelected : null]}
+                  onPress={() => setCareProfileId(cp.id)}
+                >
+                  <View style={[styles.whoAvatar, { backgroundColor: cp.color }]}>
+                    <Text style={styles.whoAvatarText}>{initial}</Text>
+                  </View>
+                  <Text style={[styles.whoChipName, isSelected ? styles.whoChipNameSelected : null]}>
+                    {cp.display_name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
 
       <Text style={styles.fieldLabel}>Medicine Name</Text>
       <TextInput
@@ -580,6 +608,49 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     padding: theme.spacing.lg,
     paddingBottom: 48,
+  },
+  whoSection: {
+    marginBottom: theme.spacing.md,
+  },
+  whoRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    paddingVertical: 4,
+  },
+  whoChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.full,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  whoChipSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: '#EDF5F2',
+  },
+  whoAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  whoAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  whoChipName: {
+    fontSize: theme.typography.label,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
+  },
+  whoChipNameSelected: {
+    color: theme.colors.primary,
   },
   subtitle: {
     marginBottom: theme.spacing.lg,

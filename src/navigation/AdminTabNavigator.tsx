@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import TodayScreen from '../screens/TodayScreen';
 import MedicinesScreen from '../screens/MedicinesScreen';
+import PeopleScreen from '../screens/PeopleScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import { AdminTabParamList } from './types';
 
@@ -54,6 +55,14 @@ export default function AdminTabNavigator() {
         options={{
           title: 'Medicines',
           tabBarIcon: ({ color, size }) => <Ionicons name="medkit-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="People"
+        component={PeopleScreen}
+        options={{
+          title: 'People',
+          tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" size={size} color={color} />,
         }}
       />
       <Tab.Screen

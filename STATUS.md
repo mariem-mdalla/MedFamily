@@ -16,9 +16,11 @@
   - Daily progress bar and counter.
   - Duplicate protection ("Already recorded" without crashing).
   - Saves medicine name and instructions snapshot in dose_logs.
-- Viewing household medicines list (MedicinesScreen) with pencil (edit) and trash (delete) icons per card.
+  - Displays person's name, color, and initial badge on each dose card.
+- Viewing household medicines list (MedicinesScreen) with pencil (edit) and trash (delete) icons per card, plus person's name, color, and initial badge.
 - Shared MedicineForm component (`src/components/MedicineForm.tsx`) used by both Add and Edit screens — single source of truth for the form UI.
 - Adding a medicine (AddMedicineScreen):
+  - "Who is it for?" selector defaulting to the current user's care profile.
   - Form selector: Pill, Liquid, Drops, Injection, Other (Ionicons, no emojis).
   - Dose amount field with helper text.
   - Instructions field.
@@ -28,21 +30,31 @@
   - Optional stock quantity and low stock alert, each with a short help text.
   - If notifications are off: calm note explaining how to enable them (not a red error), medicine still saved.
 - Editing a medicine (EditMedicineScreen):
-  - Pre-fills all fields from the existing record.
-  - On save: cancels the old scheduled reminder(s), deletes old schedule rows, inserts a new schedule row, schedules a new reminder.
+  - Pre-fills all fields and current care profile from the existing record.
+  - On save: cancels the old scheduled reminder(s), updates the schedule, schedules a new reminder.
   - If notifications are off: calm note, changes still saved.
 - Deleting a medicine: cancels scheduled reminders, confirmation alert, cascade deletes schedules, dose_logs history kept.
+- People tab for admins (`PeopleScreen`):
+  - Lists all care profiles in the household with name, color, and initial avatar.
+  - Add person screen (`AddPersonScreen`) with color palette picker and live initial preview.
+  - Edit person screen (`EditPersonScreen`) to rename and change color.
+  - Delete person with confirmation dialog, keeping past dose records via `ON DELETE SET NULL`.
+- Invites and Member role:
+  - Admin invites management (`ManageInvitesScreen` reachable from Settings): create codes, select role (Admin / helper vs Member), pick linked care profile for members, set expiry (24h, 7d, 30d), single-use option, delete invite.
+  - "Join with invite code" screen (`JoinWithCodeScreen`) reachable from Welcome screen with pre-validation and registration.
+  - Database function decides role (`handle_new_user` trigger) — client never sends a role.
+  - Member restrictions: only sees their own doses, cannot edit medicines, cannot elevate themselves to admin.
+  - Helper invite: adds another admin with household management privileges.
 
 ## In progress
-(none)
+- Run migration `006_people_care_profiles.sql` in Supabase.
+- Run migration `007_invites.sql` in Supabase.
 
 ## Not started
 - Several times per day in one medicine (optional, only if time remains)
 - Audit and remove hardcoded or fake data in all screens, starting with Settings
 - Tighten dose_logs insert policy so a dose must match a real schedule and care profile (new migration)
 - Calendar view of the schedule (bonus, late)
-- People / care profiles (add Grandpa, a child)
-- Invites and the member role
 - French and Arabic with RTL
 - Resources: reminder sound, help video, PDF manual
 - Notifications opening the dose card (last)
@@ -56,3 +68,5 @@
 | `003_dose_logs.sql` | yes |
 | `004_recurrence_and_optional_stock.sql` | yes |
 | `005_medication_form_and_dose.sql` | yes |
+| `006_people_care_profiles.sql` | no |
+| `007_invites.sql` | no |

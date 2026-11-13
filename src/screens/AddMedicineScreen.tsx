@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import MedicineForm, { DEFAULT_FORM_VALUES, MedicineFormValues } from '../components/MedicineForm';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
@@ -13,41 +13,45 @@ type AddMedicineScreenProps = NativeStackScreenProps<RootStackParamList, 'AddMed
 
 export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps) {
   const { profile } = useAuth();
-  const [careProfile, setCareProfile] = useState<CareProfile | null>(null);
-  const [careProfileError, setCareProfileError] = useState('');
+  const [careProfiles, setCareProfiles] = useState<CareProfile[]>([]);
+  const [defaultCareProfileId, setDefaultCareProfileId] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadCareProfile() {
+    async function loadCareProfiles() {
       if (!profile) {
+        setIsLoading(false);
         return;
       }
 
       const { data, error } = await supabase
         .from('care_profiles')
         .select('id, family_id, display_name, label, color, linked_user_id')
-        .eq('linked_user_id', profile.id)
-        .maybeSingle();
+        .eq('family_id', profile.family_id)
+        .order('display_name');
 
       if (!isMounted) {
         return;
       }
 
       if (error) {
-        setCareProfileError(error.message);
+        setLoadError(error.message);
+        setIsLoading(false);
         return;
       }
 
-      if (!data) {
-        setCareProfileError('No care profile is linked to this account yet.');
-        return;
-      }
+      const profiles = (data as CareProfile[]) ?? [];
+      setCareProfiles(profiles);
 
-      setCareProfile(data);
+      const linked = profiles.find((cp) => cp.linked_user_id === profile.id);
+      setDefaultCareProfileId(linked?.id ?? profiles[0]?.id ?? '');
+      setIsLoading(false);
     }
 
-    loadCareProfile();
+    loadCareProfiles();
 
     return () => {
       isMounted = false;
@@ -55,12 +59,16 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
   }, [profile?.id]);
 
   async function handleSave(values: MedicineFormValues): Promise<string | null> {
-    if (!profile || !careProfile) {
+    if (!profile) {
       return 'Your household profile is not ready yet.';
     }
 
     if (profile.role !== 'admin') {
       return 'Only an admin can add medicines.';
+    }
+
+    if (!values.careProfileId) {
+      return 'Select who this medicine is for.';
     }
 
     const monthlyDay = values.dayOfMonth.trim() ? Number(values.dayOfMonth) : null;
@@ -74,7 +82,7 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
       .from('medications')
       .insert({
         family_id: profile.family_id,
-        care_profile_id: careProfile.id,
+        care_profile_id: values.careProfileId,
         name: values.name,
         form: values.form,
         dose_amount: values.doseAmount || null,
@@ -127,18 +135,26 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
     return null;
   }
 
-  if (careProfileError) {
+  if (isLoading) {
     return (
       <View style={styles.centeredMessage}>
-        <Text style={styles.centeredMessageText}>{careProfileError}</Text>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={styles.centeredMessage}>
+        <Text style={styles.centeredMessageText}>{loadError}</Text>
       </View>
     );
   }
 
   return (
     <MedicineForm
-      initialValues={DEFAULT_FORM_VALUES}
-      careProfileName={careProfile?.display_name ?? '…'}
+      initialValues={{ ...DEFAULT_FORM_VALUES, careProfileId: defaultCareProfileId }}
+      careProfiles={careProfiles}
       onSave={handleSave}
       submitLabel="Save medicine"
     />

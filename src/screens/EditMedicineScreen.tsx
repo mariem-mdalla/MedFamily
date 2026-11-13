@@ -15,7 +15,7 @@ export default function EditMedicineScreen({ navigation, route }: EditMedicineSc
   const { profile } = useAuth();
   const { medicationId } = route.params;
 
-  const [careProfile, setCareProfile] = useState<CareProfile | null>(null);
+  const [careProfiles, setCareProfiles] = useState<CareProfile[]>([]);
   const [initialValues, setInitialValues] = useState<MedicineFormValues | null>(null);
   const [scheduleId, setScheduleId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState('');
@@ -23,30 +23,41 @@ export default function EditMedicineScreen({ navigation, route }: EditMedicineSc
   useEffect(() => {
     let isMounted = true;
 
-    async function loadMedication() {
+    async function loadData() {
       if (!profile) {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('medications')
-        .select(
-          'id, family_id, care_profile_id, name, form, dose_amount, instructions, stock_quantity, low_stock_threshold, expiry_date, schedules(id, family_id, medication_id, time_local, recurrence, weekdays, day_of_month, timezone)',
-        )
-        .eq('id', medicationId)
-        .eq('family_id', profile.family_id)
-        .single();
+      const [medResult, cpResult] = await Promise.all([
+        supabase
+          .from('medications')
+          .select(
+            'id, family_id, care_profile_id, name, form, dose_amount, instructions, stock_quantity, low_stock_threshold, expiry_date, schedules(id, family_id, medication_id, time_local, recurrence, weekdays, day_of_month, timezone)',
+          )
+          .eq('id', medicationId)
+          .eq('family_id', profile.family_id)
+          .single(),
+        supabase
+          .from('care_profiles')
+          .select('id, family_id, display_name, label, color, linked_user_id')
+          .eq('family_id', profile.family_id)
+          .order('display_name'),
+      ]);
 
       if (!isMounted) {
         return;
       }
 
-      if (error || !data) {
+      if (medResult.error || !medResult.data) {
         setLoadError('Could not load this medicine.');
         return;
       }
 
-      const med = data as unknown as MedicationWithSchedules;
+      if (cpResult.data) {
+        setCareProfiles((cpResult.data as CareProfile[]) ?? []);
+      }
+
+      const med = medResult.data as unknown as MedicationWithSchedules;
       const firstSchedule = med.schedules?.[0];
 
       if (firstSchedule) {
@@ -65,20 +76,11 @@ export default function EditMedicineScreen({ navigation, route }: EditMedicineSc
         expiryDate: med.expiry_date || '',
         stockQuantity: med.stock_quantity !== null && med.stock_quantity !== undefined ? String(med.stock_quantity) : '',
         lowStockThreshold: med.low_stock_threshold !== null && med.low_stock_threshold !== undefined ? String(med.low_stock_threshold) : '',
+        careProfileId: med.care_profile_id,
       });
-
-      const { data: cpData } = await supabase
-        .from('care_profiles')
-        .select('id, family_id, display_name, label, color, linked_user_id')
-        .eq('id', med.care_profile_id)
-        .maybeSingle();
-
-      if (isMounted) {
-        setCareProfile(cpData);
-      }
     }
 
-    loadMedication();
+    loadData();
 
     return () => {
       isMounted = false;
@@ -110,6 +112,7 @@ export default function EditMedicineScreen({ navigation, route }: EditMedicineSc
         stock_quantity: stockQty,
         low_stock_threshold: lowStock,
         expiry_date: values.expiryDate || null,
+        care_profile_id: values.careProfileId,
       })
       .eq('id', medicationId)
       .eq('family_id', profile.family_id);
@@ -178,7 +181,7 @@ export default function EditMedicineScreen({ navigation, route }: EditMedicineSc
   return (
     <MedicineForm
       initialValues={initialValues}
-      careProfileName={careProfile?.display_name ?? '…'}
+      careProfiles={careProfiles}
       onSave={handleSave}
       submitLabel="Save changes"
     />
