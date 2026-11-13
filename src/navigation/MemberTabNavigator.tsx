@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
-import HomeScreen from '../screens/HomeScreen';
+import TodayScreen from '../screens/TodayScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import { MemberTabParamList } from './types';
 
@@ -41,7 +41,7 @@ export default function MemberTabNavigator() {
     >
       <Tab.Screen
         name="Today"
-        component={HomeScreen}
+        component={TodayScreen}
         options={{
           title: 'Today',
           tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,

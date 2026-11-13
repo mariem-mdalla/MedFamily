@@ -28,6 +28,11 @@ async function loadProfile(userId: string): Promise<Profile | null> {
     throw error;
   }
 
+  if (!data) {
+    await supabase.auth.signOut();
+    return null;
+  }
+
   return data;
 }
 

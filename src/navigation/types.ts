@@ -1,7 +1,7 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AdminTabParamList = {
-  Home: undefined;
+  Today: undefined;
   Medicines: undefined;
   Settings: undefined;
 };
@@ -18,4 +18,5 @@ export type RootStackParamList = {
   AdminTabs: NavigatorScreenParams<AdminTabParamList> | undefined;
   MemberTabs: NavigatorScreenParams<MemberTabParamList> | undefined;
   AddMedicine: undefined;
+  EditMedicine: { medicationId: string };
 };

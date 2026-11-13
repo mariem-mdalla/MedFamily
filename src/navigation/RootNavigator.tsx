@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import AddMedicineScreen from '../screens/AddMedicineScreen';
+import EditMedicineScreen from '../screens/EditMedicineScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -15,7 +16,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function RootNavigator() {
   const { session, profile, isLoading } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || (session && !profile)) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.background }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -60,6 +61,11 @@ export default function RootNavigator() {
             name="AddMedicine"
             component={AddMedicineScreen}
             options={{ title: 'Add medicine' }}
+          />
+          <Stack.Screen
+            name="EditMedicine"
+            component={EditMedicineScreen}
+            options={{ title: 'Edit medicine' }}
           />
         </>
       ) : (

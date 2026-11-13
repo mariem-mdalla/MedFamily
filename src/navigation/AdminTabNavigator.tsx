@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
-import HomeScreen from '../screens/HomeScreen';
+import TodayScreen from '../screens/TodayScreen';
 import MedicinesScreen from '../screens/MedicinesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import { AdminTabParamList } from './types';
@@ -41,11 +41,11 @@ export default function AdminTabNavigator() {
       }}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+        name="Today"
+        component={TodayScreen}
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+          title: 'Today',
+          tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
         }}
       />
       <Tab.Screen

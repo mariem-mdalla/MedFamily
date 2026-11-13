@@ -1,9 +1,10 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -23,15 +24,18 @@ export default function MedicinesScreen() {
   const [medicines, setMedicines] = useState<MedicationWithSchedules[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const hasLoadedRef = useRef(false);
 
-  async function loadMedicines() {
+  async function loadMedicines(silent = false) {
     if (!profile) {
       setMedicines([]);
       setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
+    if (!silent) {
+      setIsLoading(true);
+    }
     setMessage('');
 
     const { data, error } = await supabase
@@ -54,9 +58,39 @@ export default function MedicinesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadMedicines();
+      const isInitial = !hasLoadedRef.current;
+      hasLoadedRef.current = true;
+      loadMedicines(!isInitial);
     }, [profile?.family_id]),
   );
+
+  async function handleDelete(med: MedicationWithSchedules) {
+    Alert.alert(
+      'Delete medicine',
+      `Remove "${med.name}" and all its reminders? Past dose history will be kept.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase
+              .from('medications')
+              .delete()
+              .eq('id', med.id)
+              .eq('family_id', profile?.family_id ?? '');
+
+            if (error) {
+              setMessage(error.message);
+              return;
+            }
+
+            await loadMedicines();
+          },
+        },
+      ],
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -65,7 +99,8 @@ export default function MedicinesScreen() {
 
       {profile?.role === 'admin' ? (
         <Pressable style={styles.button} onPress={() => navigation.navigate('AddMedicine')}>
-          <Text style={styles.buttonText}>+ Add medicine</Text>
+          <Ionicons name="add" size={20} color={theme.colors.surface} />
+          <Text style={styles.buttonText}>Add medicine</Text>
         </Pressable>
       ) : null}
 
@@ -79,31 +114,54 @@ export default function MedicinesScreen() {
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.emptyContainer}>
+              <Ionicons name="medkit-outline" size={40} color={theme.colors.secondary} />
               <Text style={styles.emptyTitle}>No medicines saved yet</Text>
-              <Text style={styles.emptyText}>Tap "+ Add medicine" to set up your first medication and schedule.</Text>
+              <Text style={styles.emptyText}>Tap "Add medicine" to set up your first medication and schedule.</Text>
             </View>
           ) : undefined
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.name}</Text>
-            <Text style={styles.cardText}>{item.instructions || 'No instructions saved.'}</Text>
-            <View style={styles.metaRow}>
-              <Text style={styles.stockText}>
-                {item.stock_quantity === null || item.low_stock_threshold === null
-                  ? 'Stock not tracked'
-                  : `Stock: ${item.stock_quantity} · Alert under ${item.low_stock_threshold}`}
-              </Text>
-              {item.expiry_date ? (
-                <Text style={styles.expiryText}>Exp: {item.expiry_date}</Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>{item.name}</Text>
+              {profile?.role === 'admin' ? (
+                <View style={styles.cardActions}>
+                  <Pressable
+                    style={styles.iconBtn}
+                    onPress={() => navigation.navigate('EditMedicine', { medicationId: item.id })}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="pencil-outline" size={20} color={theme.colors.primary} />
+                  </Pressable>
+                  <Pressable style={styles.iconBtn} onPress={() => handleDelete(item)} hitSlop={8}>
+                    <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+                  </Pressable>
+                </View>
               ) : null}
             </View>
+
+            {item.instructions ? (
+              <Text style={styles.cardText}>{item.instructions}</Text>
+            ) : (
+              <Text style={[styles.cardText, styles.cardTextMuted]}>No instructions saved.</Text>
+            )}
+
+            <View style={styles.metaRow}>
+              {item.expiry_date ? (
+                <View style={styles.metaBadge}>
+                  <Ionicons name="calendar-outline" size={12} color={theme.colors.textMuted} />
+                  <Text style={styles.expiryText}>Exp: {item.expiry_date}</Text>
+                </View>
+              ) : null}
+            </View>
+
             <View style={styles.schedulesContainer}>
               {item.schedules.map((schedule) => (
                 <View key={schedule.id} style={styles.scheduleBadge}>
+                  <Ionicons name="time-outline" size={13} color={theme.colors.primary} />
                   <Text style={styles.scheduleText}>
-                    <Ionicons name="time-outline" size={14} color={theme.colors.primary} />{' '}
-                    {schedule.time_local} · {formatScheduleRepeat(schedule.recurrence, schedule.weekdays, schedule.day_of_month)}
+                    {schedule.time_local} ·{' '}
+                    {formatScheduleRepeat(schedule.recurrence, schedule.weekdays, schedule.day_of_month)}
                   </Text>
                 </View>
               ))}
@@ -136,8 +194,10 @@ const styles = StyleSheet.create({
     minHeight: theme.touchTarget.minHeight,
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.primary,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
     marginBottom: theme.spacing.md,
   },
   buttonText: {
@@ -164,6 +224,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     alignItems: 'center',
     marginTop: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   emptyTitle: {
     fontSize: theme.typography.section,
@@ -171,7 +232,6 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   emptyText: {
-    marginTop: theme.spacing.xs,
     fontSize: theme.typography.label,
     color: theme.colors.textMuted,
     textAlign: 'center',
@@ -184,27 +244,49 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   cardTitle: {
+    flex: 1,
     fontSize: theme.typography.section,
     fontWeight: '700',
     color: theme.colors.text,
   },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
   cardText: {
     marginTop: theme.spacing.xs,
     fontSize: theme.typography.label,
+    color: theme.colors.text,
+  },
+  cardTextMuted: {
     color: theme.colors.textMuted,
+    fontStyle: 'italic',
   },
   metaRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginTop: theme.spacing.sm,
-    paddingTop: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.background,
   },
-  stockText: {
-    fontSize: theme.typography.small,
-    color: theme.colors.textMuted,
+  metaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   expiryText: {
     fontSize: theme.typography.small,
@@ -217,9 +299,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   scheduleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: theme.radius.full,
     borderWidth: 1,
     borderColor: theme.colors.border,
