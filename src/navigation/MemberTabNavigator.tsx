@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
+import { useTranslation } from '../i18n';
 import TodayScreen from '../screens/TodayScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -11,6 +12,7 @@ const Tab = createBottomTabNavigator<MemberTabParamList>();
 
 export default function MemberTabNavigator() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <Tab.Navigator
@@ -44,7 +46,7 @@ export default function MemberTabNavigator() {
         name="Today"
         component={TodayScreen}
         options={{
-          title: 'Today',
+          title: t.tabToday,
           tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
         }}
       />
@@ -52,7 +54,7 @@ export default function MemberTabNavigator() {
         name="History"
         component={HistoryScreen}
         options={{
-          title: 'History',
+          title: t.tabHistory,
           tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
         }}
       />
@@ -60,7 +62,7 @@ export default function MemberTabNavigator() {
         name="Settings"
         component={SettingsScreen}
         options={{
-          title: 'Settings',
+          title: t.tabSettings,
           tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" size={size} color={color} />,
         }}
       />

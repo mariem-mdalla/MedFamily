@@ -41,3 +41,36 @@ export const theme = {
     minTarget: 48,
   },
 } as const;
+
+export function getTheme(largeText = false, highContrast = false) {
+  return {
+    colors: {
+      ...theme.colors,
+      primary: highContrast ? '#1B4332' : theme.colors.primary,
+      primaryDark: highContrast ? '#081C15' : theme.colors.primaryDark,
+      secondary: highContrast ? '#2D6A4F' : theme.colors.secondary,
+      background: highContrast ? '#FFFFFF' : theme.colors.background,
+      surface: '#FFFFFF',
+      text: highContrast ? '#000000' : theme.colors.text,
+      textMuted: highContrast ? '#1F2937' : theme.colors.textMuted,
+      border: highContrast ? '#374151' : theme.colors.border,
+      error: highContrast ? '#991B1B' : theme.colors.error,
+      status: {
+        taken: highContrast ? '#1B4332' : theme.colors.status.taken,
+        notRecorded: highContrast ? '#B45309' : theme.colors.status.notRecorded,
+        skipped: highContrast ? '#4B5563' : theme.colors.status.skipped,
+        upcoming: highContrast ? '#1E3A8A' : theme.colors.status.upcoming,
+      },
+    },
+    typography: {
+      title: largeText ? 38 : 32,
+      section: largeText ? 26 : 22,
+      body: largeText ? 22 : 18,
+      label: largeText ? 19 : 16,
+      small: largeText ? 16 : 14,
+    },
+    spacing: theme.spacing,
+    radius: theme.radius,
+    touchTarget: theme.touchTarget,
+  };
+}

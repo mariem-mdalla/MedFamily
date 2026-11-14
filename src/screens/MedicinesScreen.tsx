@@ -11,9 +11,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import { formatScheduleRepeat } from '../constants/weekdays';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import { cancelScheduledRemindersForIds } from '../lib/medicationReminders';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
@@ -22,6 +22,7 @@ import { MedicationWithSchedules } from '../types/database';
 export default function MedicinesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile } = useAuth();
+  const { t, isRTL, formatSchedule } = useTranslation();
   const [medicines, setMedicines] = useState<MedicationWithSchedules[]>([]);
   const [careProfilesMap, setCareProfilesMap] = useState<Map<string, { name: string; color: string }>>(
     new Map(),
@@ -83,12 +84,12 @@ export default function MedicinesScreen() {
 
   async function handleDelete(med: MedicationWithSchedules) {
     Alert.alert(
-      'Delete medicine',
-      `Remove "${med.name}" and all its reminders? Past dose history will be kept.`,
+      t.deleteMedicine,
+      t.deleteMedicineConfirm(med.name),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Delete',
+          text: t.delete,
           style: 'destructive',
           onPress: async () => {
             try {
@@ -116,18 +117,21 @@ export default function MedicinesScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Medicines</Text>
-      <Text style={styles.message}>Manage the medicines and reminder times for your household.</Text>
+      <Text style={[styles.title, isRTL && styles.textRTL]}>{t.medicines}</Text>
+      <Text style={[styles.message, isRTL && styles.textRTL]}>{t.medicinesSubtitle}</Text>
 
       {profile?.role === 'admin' ? (
-        <Pressable style={styles.button} onPress={() => navigation.navigate('AddMedicine')}>
+        <Pressable
+          style={[styles.button, isRTL && styles.rowRTL]}
+          onPress={() => navigation.navigate('AddMedicine')}
+        >
           <Ionicons name="add" size={20} color={theme.colors.surface} />
-          <Text style={styles.buttonText}>Add medicine</Text>
+          <Text style={styles.buttonText}>{t.addMedicine}</Text>
         </Pressable>
       ) : null}
 
       {isLoading ? <ActivityIndicator style={styles.loader} color={theme.colors.primary} /> : null}
-      {message ? <Text style={styles.feedback}>{message}</Text> : null}
+      {message ? <Text style={[styles.feedback, isRTL && styles.textRTL]}>{message}</Text> : null}
 
       <FlatList
         data={medicines}
@@ -137,8 +141,8 @@ export default function MedicinesScreen() {
           !isLoading ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="medkit-outline" size={40} color={theme.colors.secondary} />
-              <Text style={styles.emptyTitle}>No medicines saved yet</Text>
-              <Text style={styles.emptyText}>Tap "Add medicine" to set up your first medication and schedule.</Text>
+              <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t.noMedicinesSaved}</Text>
+              <Text style={[styles.emptyText, isRTL && styles.textRTL]}>{t.noMedicinesSubtitle}</Text>
             </View>
           ) : undefined
         }
@@ -151,10 +155,10 @@ export default function MedicinesScreen() {
 
           return (
             <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{item.name}</Text>
+              <View style={[styles.cardHeader, isRTL && styles.rowRTL]}>
+                <Text style={[styles.cardTitle, isRTL && styles.textRTL]}>{item.name}</Text>
                 {profile?.role === 'admin' ? (
-                  <View style={styles.cardActions}>
+                  <View style={[styles.cardActions, isRTL && styles.rowRTL]}>
                     <Pressable
                       style={styles.iconBtn}
                       onPress={() => navigation.navigate('EditMedicine', { medicationId: item.id })}
@@ -169,35 +173,33 @@ export default function MedicinesScreen() {
                 ) : null}
               </View>
 
-              <View style={styles.personRow}>
+              <View style={[styles.personRow, isRTL && styles.rowRTL]}>
                 <View style={[styles.personAvatar, { backgroundColor: personInfo.color }]}>
                   <Text style={styles.personAvatarText}>{initial}</Text>
                 </View>
-                <Text style={styles.personText}>For {personInfo.name}</Text>
+                <Text style={[styles.personText, isRTL && styles.textRTL]}>{t.forPerson} {personInfo.name}</Text>
               </View>
 
               {item.instructions ? (
-                <Text style={styles.cardText}>{item.instructions}</Text>
-              ) : (
-                <Text style={[styles.cardText, styles.cardTextMuted]}>No instructions saved.</Text>
-              )}
+                <Text style={[styles.cardText, isRTL && styles.textRTL]}>{item.instructions}</Text>
+              ) : null}
 
-              <View style={styles.metaRow}>
+              <View style={[styles.metaRow, isRTL && styles.rowRTL]}>
                 {item.expiry_date ? (
-                  <View style={styles.metaBadge}>
+                  <View style={[styles.metaBadge, isRTL && styles.rowRTL]}>
                     <Ionicons name="calendar-outline" size={12} color={theme.colors.textMuted} />
-                    <Text style={styles.expiryText}>Exp: {item.expiry_date}</Text>
+                    <Text style={styles.expiryText}>{t.exp}: {item.expiry_date}</Text>
                   </View>
                 ) : null}
               </View>
 
-              <View style={styles.schedulesContainer}>
+              <View style={[styles.schedulesContainer, isRTL && styles.rowRTL]}>
                 {item.schedules.map((schedule) => (
-                  <View key={schedule.id} style={styles.scheduleBadge}>
+                  <View key={schedule.id} style={[styles.scheduleBadge, isRTL && styles.rowRTL]}>
                     <Ionicons name="time-outline" size={13} color={theme.colors.primary} />
                     <Text style={styles.scheduleText}>
                       {schedule.time_local} ·{' '}
-                      {formatScheduleRepeat(schedule.recurrence, schedule.weekdays, schedule.day_of_month)}
+                      {formatSchedule(schedule.recurrence, schedule.weekdays, schedule.day_of_month)}
                     </Text>
                   </View>
                 ))}
@@ -336,10 +338,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.label,
     color: theme.colors.text,
   },
-  cardTextMuted: {
-    color: theme.colors.textMuted,
-    fontStyle: 'italic',
-  },
   metaRow: {
     flexDirection: 'row',
     marginTop: theme.spacing.sm,
@@ -374,5 +372,12 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.small,
     color: theme.colors.primary,
     fontWeight: '600',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

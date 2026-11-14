@@ -9,8 +9,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { WEEKDAYS } from '../constants/weekdays';
 import { theme } from '../constants/theme';
+import { useTranslation } from '../i18n';
 import { CareProfile, MedicationForm, ScheduleRecurrence } from '../types/database';
 
 export type MedicineFormValues = {
@@ -45,27 +45,19 @@ export const DEFAULT_FORM_VALUES: MedicineFormValues = {
 
 type FormOption = {
   value: MedicationForm;
-  label: string;
   icon: keyof typeof Ionicons.glyphMap;
 };
 
 const FORM_OPTIONS: FormOption[] = [
-  { value: 'pill', label: 'Pill', icon: 'ellipse-outline' },
-  { value: 'liquid', label: 'Liquid', icon: 'beaker-outline' },
-  { value: 'drops', label: 'Drops', icon: 'water-outline' },
-  { value: 'injection', label: 'Injection', icon: 'medical-outline' },
-  { value: 'other', label: 'Other', icon: 'medkit-outline' },
+  { value: 'pill', icon: 'ellipse-outline' },
+  { value: 'liquid', icon: 'beaker-outline' },
+  { value: 'drops', icon: 'water-outline' },
+  { value: 'injection', icon: 'medical-outline' },
+  { value: 'other', icon: 'medkit-outline' },
 ];
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
-
-const PRESETS = [
-  { label: 'Morning', hour: 8, minute: 0 },
-  { label: 'Noon', hour: 12, minute: 0 },
-  { label: 'Evening', hour: 18, minute: 0 },
-  { label: 'Night', hour: 21, minute: 0 },
-];
 
 type MedicineFormProps = {
   initialValues: MedicineFormValues;
@@ -82,6 +74,8 @@ export default function MedicineForm({
   submitLabel,
   notificationNote,
 }: MedicineFormProps) {
+  const { t, isRTL } = useTranslation();
+
   const [name, setName] = useState(initialValues.name);
   const [form, setForm] = useState<MedicationForm>(initialValues.form);
   const [doseAmount, setDoseAmount] = useState(initialValues.doseAmount);
@@ -104,6 +98,38 @@ export default function MedicineForm({
 
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const weekdays = [
+    { value: 1, label: t.mon },
+    { value: 2, label: t.tue },
+    { value: 3, label: t.wed },
+    { value: 4, label: t.thu },
+    { value: 5, label: t.fri },
+    { value: 6, label: t.sat },
+    { value: 7, label: t.sun },
+  ];
+
+  const presets = [
+    { label: t.morning, hour: 8, minute: 0 },
+    { label: t.noon, hour: 12, minute: 0 },
+    { label: t.evening, hour: 18, minute: 0 },
+    { label: t.night, hour: 21, minute: 0 },
+  ];
+
+  function getFormLabel(formVal: MedicationForm): string {
+    switch (formVal) {
+      case 'pill':
+        return t.pill;
+      case 'liquid':
+        return t.liquid;
+      case 'drops':
+        return t.drops;
+      case 'injection':
+        return t.injection;
+      default:
+        return t.other;
+    }
+  }
 
   function toggleDay(day: number) {
     setSelectedDays((current) => {
@@ -155,17 +181,17 @@ export default function MedicineForm({
     const monthlyDay = dayOfMonth.trim() ? Number(dayOfMonth) : null;
 
     if (!trimmedName) {
-      setErrorMessage('Enter the medicine name.');
+      setErrorMessage(t.enterMedicineName);
       return;
     }
 
     if (!recurrence) {
-      setErrorMessage('Choose how often the reminder should repeat.');
+      setErrorMessage(t.selectRecurrence);
       return;
     }
 
     if (recurrence === 'weekly' && selectedDays.length === 0) {
-      setErrorMessage('Select at least one day of the week.');
+      setErrorMessage(t.selectAtLeastOneDay);
       return;
     }
 
@@ -173,22 +199,22 @@ export default function MedicineForm({
       recurrence === 'monthly' &&
       (!Number.isInteger(monthlyDay) || monthlyDay === null || monthlyDay < 1 || monthlyDay > 28)
     ) {
-      setErrorMessage('Choose a day from 1 to 28 so it exists every month.');
+      setErrorMessage(t.enterDayOfMonth);
       return;
     }
 
     if (expiryDate && !/^\d{4}-\d{2}-\d{2}$/.test(expiryDate)) {
-      setErrorMessage('Use expiry date as YYYY-MM-DD, or leave it empty.');
+      setErrorMessage('YYYY-MM-DD');
       return;
     }
 
     if (stockQuantity && isNaN(Number(stockQuantity))) {
-      setErrorMessage('Stock quantity must be a number.');
+      setErrorMessage(t.stockQuantity);
       return;
     }
 
     if (lowStockThreshold && isNaN(Number(lowStockThreshold))) {
-      setErrorMessage('Low stock alert must be a number.');
+      setErrorMessage(t.lowStockThreshold);
       return;
     }
 
@@ -220,15 +246,15 @@ export default function MedicineForm({
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       {careProfiles.length > 0 ? (
         <View style={styles.whoSection}>
-          <Text style={styles.fieldLabel}>Who is it for?</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.whoRow}>
+          <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.whoIsItFor}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.whoRow, isRTL && styles.rowRTL]}>
             {careProfiles.map((cp) => {
               const isSelected = careProfileId === cp.id;
               const initial = cp.display_name.charAt(0).toUpperCase();
               return (
                 <Pressable
                   key={cp.id}
-                  style={[styles.whoChip, isSelected ? styles.whoChipSelected : null]}
+                  style={[styles.whoChip, isSelected ? styles.whoChipSelected : null, isRTL && styles.rowRTL]}
                   onPress={() => setCareProfileId(cp.id)}
                 >
                   <View style={[styles.whoAvatar, { backgroundColor: cp.color }]}>
@@ -244,17 +270,17 @@ export default function MedicineForm({
         </View>
       ) : null}
 
-      <Text style={styles.fieldLabel}>Medicine Name</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.medicineName}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="e.g. Metformin"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.medicineNamePlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={name}
         onChangeText={setName}
       />
 
-      <Text style={styles.fieldLabel}>Form</Text>
-      <View style={styles.formRow}>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.form}</Text>
+      <View style={[styles.formRow, isRTL && styles.rowRTL]}>
         {FORM_OPTIONS.map((option) => {
           const isSelected = form === option.value;
           return (
@@ -273,54 +299,54 @@ export default function MedicineForm({
                 color={isSelected ? theme.colors.surface : theme.colors.primary}
               />
               <Text style={[styles.formChipText, isSelected ? styles.formChipTextSelected : null]}>
-                {option.label}
+                {getFormLabel(option.value)}
               </Text>
             </Pressable>
           );
         })}
       </View>
 
-      <Text style={styles.fieldLabel}>Dose Amount (Optional)</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.doseAmount}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="e.g. 1 pill, 5 ml, 2 drops"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.doseAmountPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={doseAmount}
         onChangeText={setDoseAmount}
       />
-      <Text style={styles.helperText}>
-        How much to take each time. This appears in the reminder notification.
+      <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+        {t.doseAmountHelper}
       </Text>
 
-      <Text style={styles.fieldLabel}>Instructions (Optional)</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.instructions}</Text>
       <TextInput
-        style={[styles.input, styles.multiline]}
-        placeholder="e.g. Take with a glass of water after meals"
+        style={[styles.input, styles.multiline, isRTL && styles.inputRTL]}
+        placeholder={t.instructionsPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={instructions}
         onChangeText={setInstructions}
         multiline
       />
 
-      <Text style={styles.fieldLabel}>Reminder Time</Text>
-      <Pressable style={styles.timeSelectorButton} onPress={handleOpenTimePicker}>
-        <View style={styles.timeSelectorLeft}>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.reminderTime}</Text>
+      <Pressable style={[styles.timeSelectorButton, isRTL && styles.rowRTL]} onPress={handleOpenTimePicker}>
+        <View style={[styles.timeSelectorLeft, isRTL && styles.rowRTL]}>
           <Ionicons name="alarm-outline" size={24} color={theme.colors.primary} />
           <Text style={styles.timeSelectorValue}>{timeLocal}</Text>
         </View>
-        <View style={styles.timeSelectorBadge}>
-          <Text style={styles.timeSelectorBadgeText}>Change</Text>
-          <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+        <View style={[styles.timeSelectorBadge, isRTL && styles.rowRTL]}>
+          <Text style={styles.timeSelectorBadgeText}>{t.edit}</Text>
+          <Ionicons name={isRTL ? "chevron-back" : "chevron-forward"} size={16} color={theme.colors.primary} />
         </View>
       </Pressable>
 
-      <Text style={styles.sectionTitle}>Repeat</Text>
-      <View style={styles.recurrenceRow}>
+      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.recurrence}</Text>
+      <View style={[styles.recurrenceRow, isRTL && styles.rowRTL]}>
         {(
           [
-            { value: 'daily', label: 'Every day' },
-            { value: 'weekly', label: 'Selected days' },
-            { value: 'monthly', label: 'Monthly' },
+            { value: 'daily', label: t.everyDay },
+            { value: 'weekly', label: t.selectedDays },
+            { value: 'monthly', label: t.monthly },
           ] as const
         ).map((option) => (
           <Pressable
@@ -345,8 +371,8 @@ export default function MedicineForm({
       </View>
 
       {recurrence === 'weekly' ? (
-        <View style={styles.daysRow}>
-          {WEEKDAYS.map((day) => {
+        <View style={[styles.daysRow, isRTL && styles.rowRTL]}>
+          {weekdays.map((day) => {
             const selected = selectedDays.includes(day.value);
             return (
               <Pressable
@@ -365,25 +391,22 @@ export default function MedicineForm({
 
       {recurrence === 'monthly' ? (
         <View>
-          <Text style={styles.fieldLabel}>Day of the month (1–28)</Text>
+          <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.dayOfMonth}</Text>
           <TextInput
-            style={styles.input}
-            placeholder="e.g. 15"
+            style={[styles.input, isRTL && styles.inputRTL]}
+            placeholder={t.dayOfMonthPlaceholder}
             placeholderTextColor={theme.colors.textMuted}
             value={dayOfMonth}
             onChangeText={setDayOfMonth}
             keyboardType="number-pad"
           />
-          <Text style={styles.helperText}>Choose 1–28 so the date exists every month.</Text>
         </View>
       ) : null}
 
-      <Text style={styles.sectionTitle}>Optional details</Text>
-
-      <Text style={styles.fieldLabel}>Expiry Date (Optional)</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.expiryDate}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="YYYY-MM-DD"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.expiryPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={expiryDate}
         onChangeText={setExpiryDate}
@@ -391,43 +414,43 @@ export default function MedicineForm({
         keyboardType="numbers-and-punctuation"
       />
 
-      <Text style={styles.fieldLabel}>Stock Quantity (Optional)</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.stockQuantity}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="e.g. 30"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.stockPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={stockQuantity}
         onChangeText={setStockQuantity}
         keyboardType="number-pad"
       />
-      <Text style={styles.helperText}>
-        How many pills / doses you currently have at home.
+      <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+        {t.stockQuantityHelper}
       </Text>
 
-      <Text style={styles.fieldLabel}>Low Stock Alert (Optional)</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.lowStockThreshold}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="e.g. 5"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.lowStockPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={lowStockThreshold}
         onChangeText={setLowStockThreshold}
         keyboardType="number-pad"
       />
-      <Text style={styles.helperText}>
-        The app will remind you to buy more when you have this many left.
+      <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+        {t.lowStockThresholdHelper}
       </Text>
 
       {errorMessage ? (
-        <View style={styles.errorBox}>
+        <View style={[styles.errorBox, isRTL && styles.rowRTL]}>
           <Ionicons name="alert-circle-outline" size={18} color={theme.colors.error} />
-          <Text style={styles.errorText}>{errorMessage}</Text>
+          <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errorMessage}</Text>
         </View>
       ) : null}
 
       {notificationNote ? (
-        <View style={styles.noticeBox}>
+        <View style={[styles.noticeBox, isRTL && styles.rowRTL]}>
           <Ionicons name="notifications-off-outline" size={18} color={theme.colors.textMuted} />
-          <Text style={styles.noticeText}>{notificationNote}</Text>
+          <Text style={[styles.noticeText, isRTL && styles.textRTL]}>{notificationNote}</Text>
         </View>
       ) : null}
 
@@ -436,23 +459,23 @@ export default function MedicineForm({
         onPress={handleSubmit}
         disabled={isSubmitting}
       >
-        <Text style={styles.buttonText}>{isSubmitting ? 'Saving…' : submitLabel}</Text>
+        <Text style={styles.buttonText}>{isSubmitting ? t.saving : submitLabel}</Text>
       </Pressable>
 
       <Modal visible={isTimePickerOpen} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Reminder Time</Text>
+            <View style={[styles.modalHeader, isRTL && styles.rowRTL]}>
+              <Text style={styles.modalTitle}>{t.confirmTime}</Text>
               <Pressable onPress={() => setIsTimePickerOpen(false)} hitSlop={8}>
                 <Ionicons name="close" size={24} color={theme.colors.textMuted} />
               </Pressable>
             </View>
 
             <View style={styles.timePreviewBox}>
-              <View style={styles.stepperContainer}>
+              <View style={[styles.stepperContainer, isRTL && styles.rowRTL]}>
                 <View style={styles.stepperColumn}>
-                  <Text style={styles.stepperLabel}>HOUR</Text>
+                  <Text style={styles.stepperLabel}>{t.hour}</Text>
                   <View style={styles.stepperRow}>
                     <Pressable
                       style={({ pressed }) => [styles.stepperBtn, pressed ? styles.stepperBtnPressed : null]}
@@ -475,7 +498,7 @@ export default function MedicineForm({
                 <Text style={styles.timePreviewColon}>:</Text>
 
                 <View style={styles.stepperColumn}>
-                  <Text style={styles.stepperLabel}>MINUTE</Text>
+                  <Text style={styles.stepperLabel}>{t.minute}</Text>
                   <View style={styles.stepperRow}>
                     <Pressable
                       style={({ pressed }) => [styles.stepperBtn, pressed ? styles.stepperBtnPressed : null]}
@@ -497,9 +520,9 @@ export default function MedicineForm({
               </View>
             </View>
 
-            <Text style={styles.pickerSectionLabel}>Quick Presets</Text>
-            <View style={styles.presetsRow}>
-              {PRESETS.map((preset) => {
+            <Text style={[styles.pickerSectionLabel, isRTL && styles.textRTL]}>{t.quickPresets}</Text>
+            <View style={[styles.presetsRow, isRTL && styles.rowRTL]}>
+              {presets.map((preset) => {
                 const isActive = selectedHour === preset.hour && selectedMinute === preset.minute;
                 return (
                   <Pressable
@@ -522,9 +545,9 @@ export default function MedicineForm({
               })}
             </View>
 
-            <View style={styles.columnsContainer}>
+            <View style={[styles.columnsContainer, isRTL && styles.rowRTL]}>
               <View style={styles.pickerColumn}>
-                <Text style={styles.columnHeader}>Hour (00–23)</Text>
+                <Text style={styles.columnHeader}>{t.hour}</Text>
                 <ScrollView
                   style={styles.columnScroll}
                   nestedScrollEnabled
@@ -556,7 +579,7 @@ export default function MedicineForm({
               </View>
 
               <View style={styles.pickerColumn}>
-                <Text style={styles.columnHeader}>Minute (00–55)</Text>
+                <Text style={styles.columnHeader}>{t.minute}</Text>
                 <ScrollView
                   style={styles.columnScroll}
                   nestedScrollEnabled
@@ -588,12 +611,12 @@ export default function MedicineForm({
               </View>
             </View>
 
-            <View style={styles.modalActionRow}>
+            <View style={[styles.modalActionRow, isRTL && styles.rowRTL]}>
               <Pressable style={styles.modalCancelBtn} onPress={() => setIsTimePickerOpen(false)}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>{t.cancel}</Text>
               </Pressable>
               <Pressable style={styles.modalConfirmBtn} onPress={handleConfirmTime}>
-                <Text style={styles.modalConfirmText}>Confirm Time</Text>
+                <Text style={styles.modalConfirmText}>{t.confirmTime}</Text>
               </Pressable>
             </View>
           </View>
@@ -651,69 +674,72 @@ const styles = StyleSheet.create({
   },
   whoChipNameSelected: {
     color: theme.colors.primary,
-  },
-  subtitle: {
-    marginBottom: theme.spacing.lg,
-    fontSize: theme.typography.body,
-    color: theme.colors.textMuted,
+    fontWeight: '700',
   },
   fieldLabel: {
     fontSize: theme.typography.label,
     fontWeight: '700',
     color: theme.colors.text,
     marginBottom: 6,
+    marginTop: theme.spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: theme.typography.section,
+    fontWeight: '800',
+    color: theme.colors.text,
+    marginTop: theme.spacing.lg,
+    marginBottom: 6,
   },
   input: {
-    borderWidth: 1,
+    minHeight: 48,
+    borderWidth: 1.5,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.md,
-    minHeight: theme.touchTarget.minHeight,
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: theme.spacing.md,
-    marginBottom: 6,
     fontSize: theme.typography.body,
     color: theme.colors.text,
   },
   multiline: {
-    minHeight: 96,
-    paddingTop: theme.spacing.md,
+    minHeight: 80,
+    paddingTop: theme.spacing.sm,
     textAlignVertical: 'top',
-    marginBottom: 6,
   },
   helperText: {
-    marginBottom: theme.spacing.md,
     fontSize: theme.typography.small,
     color: theme.colors.textMuted,
-    lineHeight: 20,
+    marginTop: 4,
+    marginBottom: theme.spacing.xs,
   },
   formRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.xs,
   },
   formChip: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
+    flex: 1,
+    minWidth: 60,
+    minHeight: 64,
     borderWidth: 1.5,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.md,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    minWidth: 60,
-  },
-  formChipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
   },
   formChipPressed: {
-    opacity: 0.75,
+    opacity: 0.8,
+  },
+  formChipSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   formChipText: {
-    fontSize: theme.typography.small,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: theme.colors.text,
   },
   formChipTextSelected: {
@@ -721,15 +747,14 @@ const styles = StyleSheet.create({
   },
   timeSelectorButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    justifyContent: 'space-between',
+    minHeight: 56,
     borderWidth: 1.5,
-    borderColor: theme.colors.primary,
+    borderColor: theme.colors.border,
     borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: theme.spacing.md,
-    minHeight: theme.touchTarget.minHeight,
-    marginBottom: theme.spacing.md,
   },
   timeSelectorLeft: {
     flexDirection: 'row',
@@ -745,108 +770,103 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.sm,
     paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#EDF5F2',
     borderRadius: theme.radius.full,
   },
   timeSelectorBadgeText: {
-    fontSize: theme.typography.small,
+    fontSize: theme.typography.label,
     fontWeight: '700',
     color: theme.colors.primary,
-  },
-  sectionTitle: {
-    marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-    fontSize: theme.typography.section,
-    fontWeight: '700',
-    color: theme.colors.text,
   },
   recurrenceRow: {
     flexDirection: 'row',
     gap: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.xs,
   },
   recurrenceChip: {
     flex: 1,
-    borderWidth: 1,
+    minHeight: 44,
+    borderWidth: 1.5,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.md,
-    paddingVertical: 14,
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
   },
   recurrenceChipSelected: {
-    backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   recurrenceChipText: {
+    fontSize: 12,
+    fontWeight: '700',
     color: theme.colors.text,
-    fontWeight: '600',
-    fontSize: theme.typography.label,
   },
   recurrenceChipTextSelected: {
     color: theme.colors.surface,
   },
   daysRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.lg,
+    gap: 6,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
   },
   dayChip: {
-    borderWidth: 1,
+    flex: 1,
+    minHeight: 40,
+    borderWidth: 1.5,
     borderColor: theme.colors.border,
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.full,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dayChipSelected: {
-    backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   dayChipText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: theme.colors.text,
-    fontWeight: '600',
-    fontSize: theme.typography.label,
   },
   dayChipTextSelected: {
     color: theme.colors.surface,
   },
   errorBox: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 8,
     backgroundColor: '#FEF0EF',
     borderWidth: 1,
     borderColor: theme.colors.error,
     borderRadius: theme.radius.md,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
+    padding: theme.spacing.md,
+    marginVertical: theme.spacing.md,
   },
   errorText: {
     flex: 1,
-    fontSize: theme.typography.label,
     color: theme.colors.error,
-    fontWeight: '600',
+    fontSize: theme.typography.label,
   },
   noticeBox: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 8,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: theme.radius.md,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
+    padding: theme.spacing.md,
+    marginVertical: theme.spacing.sm,
   },
   noticeText: {
     flex: 1,
-    fontSize: theme.typography.label,
     color: theme.colors.textMuted,
-    lineHeight: 22,
+    fontSize: theme.typography.label,
   },
   button: {
     minHeight: theme.touchTarget.minHeight,
@@ -854,31 +874,29 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: theme.spacing.sm,
+    marginTop: theme.spacing.lg,
   },
   buttonPressed: {
-    opacity: 0.85,
+    backgroundColor: theme.colors.primaryDark,
   },
   buttonText: {
     color: theme.colors.surface,
     fontSize: theme.typography.body,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.lg,
   },
   modalContent: {
     width: '100%',
-    maxHeight: '85%',
+    maxWidth: 380,
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
@@ -1083,5 +1101,16 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body,
     fontWeight: '700',
     color: theme.colors.surface,
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  inputRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

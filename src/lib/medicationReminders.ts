@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-type ReminderSchedule = {
+export type ReminderSchedule = {
   medicationName: string;
   doseAmount: string | null;
   instructions: string;
@@ -13,7 +13,22 @@ type ReminderSchedule = {
   scheduleId: string;
 };
 
-const CHANNEL_ID = 'medication-reminders';
+export const NOTIFICATION_CHANNEL_ID = 'medication-reminders';
+
+export async function setupNotificationChannel(): Promise<void> {
+  if (Platform.OS === 'android') {
+    try {
+      await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_ID, {
+        name: 'Medication Reminders',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        enableVibrate: true,
+      });
+    } catch {
+      // non-blocking
+    }
+  }
+}
 
 export async function cancelScheduledRemindersForIds(scheduleIds: string[]): Promise<void> {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
@@ -26,18 +41,10 @@ export async function cancelScheduledRemindersForIds(scheduleIds: string[]): Pro
   await Promise.all(toCancel.map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)));
 }
 
-export async function scheduleMedicationReminder(schedule: ReminderSchedule) {
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: 'Medication reminders',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      sound: 'default',
-    });
-  }
+export async function scheduleMedicationReminder(schedule: ReminderSchedule): Promise<boolean> {
+  await setupNotificationChannel();
 
   let permission = await Notifications.getPermissionsAsync();
-
   if (!permission.granted) {
     permission = await Notifications.requestPermissionsAsync();
   }
@@ -60,9 +67,39 @@ export async function scheduleMedicationReminder(schedule: ReminderSchedule) {
     title,
     body,
     sound: 'default' as const,
-    data: { scheduleId: schedule.scheduleId },
+    data: {
+      scheduleId: schedule.scheduleId,
+      medicationName: schedule.medicationName,
+      language: schedule.language,
+    },
   };
 
+  // 1. Calculate the exact next occurrence Date
+  const now = new Date();
+  const nextOccurrence = new Date();
+  nextOccurrence.setHours(hour, minute, 0, 0);
+
+  // If the target time has already passed today, push to tomorrow
+  if (nextOccurrence.getTime() <= now.getTime()) {
+    nextOccurrence.setDate(nextOccurrence.getDate() + 1);
+  }
+
+  // 2. Schedule the immediate next occurrence with an exact DATE trigger
+  // This guarantees that short-term tests (e.g. 1-2 minutes from now) fire on time without inexact Doze delays
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: nextOccurrence,
+        channelId: NOTIFICATION_CHANNEL_ID,
+      },
+    });
+  } catch {
+    // continue
+  }
+
+  // 3. Schedule the repeating schedule based on recurrence type
   if (schedule.recurrence === 'daily') {
     await Notifications.scheduleNotificationAsync({
       content,
@@ -70,7 +107,7 @@ export async function scheduleMedicationReminder(schedule: ReminderSchedule) {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour,
         minute,
-        channelId: CHANNEL_ID,
+        channelId: NOTIFICATION_CHANNEL_ID,
       },
     });
     return true;
@@ -84,29 +121,69 @@ export async function scheduleMedicationReminder(schedule: ReminderSchedule) {
         day: schedule.dayOfMonth,
         hour,
         minute,
-        channelId: CHANNEL_ID,
+        channelId: NOTIFICATION_CHANNEL_ID,
       },
     });
     return true;
   }
 
-  const expoWeekdays = schedule.weekdays.map((weekday) => (weekday === 7 ? 1 : weekday + 1));
-
-  await Promise.all(
-    expoWeekdays.map((weekday) =>
-      Notifications.scheduleNotificationAsync({
-        content,
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-          weekday,
-          hour,
-          minute,
-          channelId: CHANNEL_ID,
-        },
-      }),
-    ),
-  );
+  if (schedule.recurrence === 'weekly' && schedule.weekdays.length > 0) {
+    const expoWeekdays = schedule.weekdays.map((weekday) => (weekday === 7 ? 1 : weekday + 1));
+    await Promise.all(
+      expoWeekdays.map((weekday) =>
+        Notifications.scheduleNotificationAsync({
+          content,
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+            weekday,
+            hour,
+            minute,
+            channelId: NOTIFICATION_CHANNEL_ID,
+          },
+        }),
+      ),
+    );
+  }
 
   return true;
 }
 
+export async function scheduleTestReminder(language: 'fr' | 'ar', seconds = 5): Promise<boolean> {
+  await setupNotificationChannel();
+
+  let permission = await Notifications.getPermissionsAsync();
+  if (!permission.granted) {
+    permission = await Notifications.requestPermissionsAsync();
+  }
+
+  if (!permission.granted) {
+    return false;
+  }
+
+  const isAr = language === 'ar';
+  const medicineName = isAr ? 'باراسيتامول' : 'Paracétamol';
+  const title = isAr ? 'تذكير بالدواء (اختبار)' : 'Rappel de médicament (Test)';
+  const body = isAr
+    ? `حان وقت تناول ${medicineName}. خذ حبة واحدة بعد الأكل.`
+    : `C'est l'heure de prendre ${medicineName}. Prendre 1 comprimé après le repas.`;
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      sound: 'default',
+      data: {
+        medicationName: medicineName,
+        language,
+        isTest: true,
+      },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds,
+      channelId: NOTIFICATION_CHANNEL_ID,
+    },
+  });
+
+  return true;
+}

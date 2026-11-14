@@ -1,9 +1,11 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as Speech from 'expo-speech';
 import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -12,6 +14,7 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 import { MedicationWithSchedules } from '../types/database';
@@ -55,17 +58,33 @@ function getTodayWeekday(): number {
 export default function TodayScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile, session } = useAuth();
+  const { t, isRTL } = useTranslation();
   const [doses, setDoses] = useState<TodayDose[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState('');
   const [recordingId, setRecordingId] = useState<string | null>(null);
+  const [speakingOccurrenceId, setSpeakingOccurrenceId] = useState<string | null>(null);
   const hasLoadedRef = useRef(false);
 
   const todayDateString = getTodayDateString();
   const currentTimeString = getCurrentTimeString();
+
+  const isLarge = profile?.large_text ?? false;
+  const isHighContrast = profile?.high_contrast ?? false;
+
+  const dynMedTitleSize = isLarge ? 22 : 18;
+  const dynTimeSize = isLarge ? 17 : 14;
+  const dynPersonSize = isLarge ? 17 : 14;
+  const dynInstructionsSize = isLarge ? 16 : 13;
+  const dynActionBtnTextSize = isLarge ? 17 : 14;
+  const dynCardStyle = isHighContrast
+    ? { borderColor: '#111827', borderWidth: 2, backgroundColor: '#FFFFFF' }
+    : null;
+  const dynMedTitleColor = isHighContrast ? '#000000' : theme.colors.text;
   const currentHour = new Date().getHours();
-  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
-  const todayFormatted = new Date().toLocaleDateString(undefined, {
+  const greeting =
+    currentHour < 12 ? t.goodMorning : currentHour < 18 ? t.goodAfternoon : t.goodEvening;
+  const todayFormatted = new Date().toLocaleDateString(isRTL ? 'ar-SA' : 'fr-FR', {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
@@ -212,8 +231,94 @@ export default function TodayScreen() {
       const isInitial = !hasLoadedRef.current;
       hasLoadedRef.current = true;
       loadTodayDoses(!isInitial);
+      // Keep speech playing when user navigates between tabs
     }, [profile?.family_id]),
   );
+
+  function showVoiceInstallHelp(isAr: boolean) {
+    setActionMessage(t.voiceNotInstalledAction);
+    Alert.alert(t.voiceNotInstalledTitle, t.voiceNotInstalledMessage, [{ text: t.ok }]);
+  }
+
+  async function handleHearThis(dose: TodayDose) {
+    const isAr = profile?.language === 'ar';
+    const langCode = isAr ? 'ar-SA' : 'fr-FR';
+
+    if (speakingOccurrenceId === dose.occurrenceId) {
+      Speech.stop();
+      setSpeakingOccurrenceId(null);
+      return;
+    }
+
+    Speech.stop();
+
+    let voiceIdentifier: string | undefined;
+
+    try {
+      const voices = await Speech.getAvailableVoicesAsync();
+      if (voices && voices.length > 0) {
+        const matchingVoice = voices.find((v) => {
+          const l = v.language.toLowerCase();
+          const id = v.identifier.toLowerCase();
+          if (isAr) {
+            return l.startsWith('ar') || id.includes('ar');
+          }
+          return l === 'fr-fr' || l.startsWith('fr') || id.includes('fra') || id.includes('french');
+        });
+
+        if (!matchingVoice) {
+          showVoiceInstallHelp(isAr);
+          return;
+        }
+
+        voiceIdentifier = matchingVoice.identifier;
+      }
+    } catch {
+      // getAvailableVoicesAsync might fail on some platforms/emulators, continue gracefully
+    }
+
+    // If two or more medicines share a time, speak sequentially
+    const sameTimeDoses = doses.filter((d) => d.timeLocal === dose.timeLocal);
+    const queue = [
+      dose,
+      ...sameTimeDoses.filter((d) => d.occurrenceId !== dose.occurrenceId),
+    ];
+
+    let currentIndex = 0;
+
+    function speakNext() {
+      if (currentIndex >= queue.length) {
+        setSpeakingOccurrenceId(null);
+        return;
+      }
+
+      const currentDose = queue[currentIndex];
+      setSpeakingOccurrenceId(currentDose.occurrenceId);
+
+      const phrase = isAr
+        ? `حان وقت تناول ${currentDose.medicineName}`
+        : `Il est temps de prendre ${currentDose.medicineName}`;
+
+      Speech.speak(phrase, {
+        language: langCode,
+        voice: voiceIdentifier,
+        rate: 0.9,
+        onDone: () => {
+          currentIndex++;
+          speakNext();
+        },
+        onStopped: () => {
+          setSpeakingOccurrenceId(null);
+        },
+        onError: () => {
+          setSpeakingOccurrenceId(null);
+          showVoiceInstallHelp(isAr);
+        },
+      });
+    }
+
+    speakNext();
+  }
 
   async function handleRecordDose(dose: TodayDose, statusToRecord: 'taken' | 'skipped') {
     if (!profile || !session?.user.id) {
@@ -239,7 +344,7 @@ export default function TodayScreen() {
 
     if (error) {
       if (error.code === '23505' || error.message.includes('dose_logs_occurrence_unique')) {
-        setActionMessage('Already recorded');
+        setActionMessage(t.alreadyRecorded);
         await loadTodayDoses();
         return;
       }
@@ -257,35 +362,35 @@ export default function TodayScreen() {
   function renderStatusBadge(status: DoseUiStatus) {
     if (status === 'recorded') {
       return (
-        <View style={[styles.badge, styles.badgeRecorded]}>
+        <View style={[styles.badge, styles.badgeRecorded, isRTL && styles.rowRTL]}>
           <Ionicons name="checkmark-circle" size={16} color={theme.colors.status.taken} />
-          <Text style={[styles.badgeText, { color: theme.colors.status.taken }]}>Recorded</Text>
+          <Text style={[styles.badgeText, { color: theme.colors.status.taken }]}>{t.recorded}</Text>
         </View>
       );
     }
 
     if (status === 'skipped') {
       return (
-        <View style={[styles.badge, styles.badgeSkipped]}>
+        <View style={[styles.badge, styles.badgeSkipped, isRTL && styles.rowRTL]}>
           <Ionicons name="play-skip-forward-circle" size={16} color={theme.colors.status.skipped} />
-          <Text style={[styles.badgeText, { color: theme.colors.status.skipped }]}>Skipped</Text>
+          <Text style={[styles.badgeText, { color: theme.colors.status.skipped }]}>{t.skipped}</Text>
         </View>
       );
     }
 
     if (status === 'not_recorded') {
       return (
-        <View style={[styles.badge, styles.badgeNotRecorded]}>
+        <View style={[styles.badge, styles.badgeNotRecorded, isRTL && styles.rowRTL]}>
           <Ionicons name="alert-circle-outline" size={16} color={theme.colors.status.notRecorded} />
-          <Text style={[styles.badgeText, { color: theme.colors.status.notRecorded }]}>Not recorded yet</Text>
+          <Text style={[styles.badgeText, { color: theme.colors.status.notRecorded }]}>{t.notRecordedYet}</Text>
         </View>
       );
     }
 
     return (
-      <View style={[styles.badge, styles.badgeUpcoming]}>
+      <View style={[styles.badge, styles.badgeUpcoming, isRTL && styles.rowRTL]}>
         <Ionicons name="hourglass-outline" size={16} color={theme.colors.status.upcoming} />
-        <Text style={[styles.badgeText, { color: theme.colors.status.upcoming }]}>Upcoming</Text>
+        <Text style={[styles.badgeText, { color: theme.colors.status.upcoming }]}>{t.upcoming}</Text>
       </View>
     );
   }
@@ -297,24 +402,26 @@ export default function TodayScreen() {
       contentContainerStyle={styles.container}
       ListHeaderComponent={
         <View>
-          <View style={styles.headerCard}>
-            <Text style={styles.dateLabel}>{todayFormatted}</Text>
-            <Text style={styles.greetingTitle}>
+          <View style={[styles.headerCard, dynCardStyle]}>
+            <Text style={[styles.dateLabel, isLarge && { fontSize: 18 }, isRTL && styles.textRTL]}>{todayFormatted}</Text>
+            <Text style={[styles.greetingTitle, isLarge && { fontSize: 26 }, isHighContrast && { color: '#000000' }, isRTL && styles.textRTL]}>
               {greeting}, {profile?.display_name ?? session?.user.email ?? 'friend'}
             </Text>
-            <View style={styles.profileBadge}>
-              <Ionicons name="person-circle-outline" size={16} color={theme.colors.primary} />
-              <Text style={styles.profileBadgeText}>
-                {profile?.role === 'admin' ? 'Household Admin' : 'Family Member'}
+            <View style={[styles.profileBadge, isRTL && styles.rowRTL]}>
+              <Ionicons name="person-circle-outline" size={isLarge ? 20 : 16} color={theme.colors.primary} />
+              <Text style={[styles.profileBadgeText, isLarge && { fontSize: 16 }]}>
+                {profile?.role === 'admin' ? t.householdAdmin : t.familyMember}
               </Text>
             </View>
           </View>
 
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressTitle}>Daily Progress</Text>
-              <Text style={styles.progressValue}>
-                {recordedCount} of {totalCount} recorded
+          <View style={[styles.progressCard, dynCardStyle]}>
+            <View style={[styles.progressHeader, isRTL && styles.rowRTL]}>
+              <Text style={[styles.progressTitle, isLarge && { fontSize: 20 }, isHighContrast && { color: '#000000' }, isRTL && styles.textRTL]}>{t.dailyProgress}</Text>
+              <Text style={[styles.progressValue, isLarge && { fontSize: 18 }, isHighContrast && { color: '#000000' }, isRTL && styles.textRTL]}>
+                {isRTL
+                  ? `${t.ofRecorded} ${totalCount} ${recordedCount}`
+                  : `${recordedCount} ${t.ofRecorded} ${totalCount}`}
               </Text>
             </View>
             <View style={styles.progressBarTrack}>
@@ -323,9 +430,9 @@ export default function TodayScreen() {
           </View>
 
           {actionMessage ? (
-            <View style={styles.messageBox}>
+            <View style={[styles.messageBox, isRTL && styles.rowRTL]}>
               <Ionicons name="information-circle" size={18} color={theme.colors.primary} />
-              <Text style={styles.messageText}>{actionMessage}</Text>
+              <Text style={[styles.messageText, isRTL && styles.textRTL]}>{actionMessage}</Text>
             </View>
           ) : null}
 
@@ -336,86 +443,122 @@ export default function TodayScreen() {
           {!isLoading && totalCount === 0 ? (
             <View style={styles.emptyCard}>
               <Ionicons name="checkmark-done-circle-outline" size={48} color={theme.colors.secondary} />
-              <Text style={styles.emptyTitle}>No doses scheduled today</Text>
-              <Text style={styles.emptyText}>
-                All medicines with reminder times for today will appear here.
+              <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t.noDosesToday}</Text>
+              <Text style={[styles.emptyText, isRTL && styles.textRTL]}>
+                {t.noDosesSubtitle}
               </Text>
               {profile?.role === 'admin' ? (
                 <Pressable
-                  style={styles.addMedicineBtn}
+                  style={[styles.addMedicineBtn, isRTL && styles.rowRTL]}
                   onPress={() => navigation.navigate('AddMedicine')}
                 >
                   <Ionicons name="add" size={18} color={theme.colors.surface} />
-                  <Text style={styles.addMedicineBtnText}>Add a medicine</Text>
+                  <Text style={styles.addMedicineBtnText}>{t.addAMedicine}</Text>
                 </Pressable>
               ) : null}
             </View>
           ) : null}
 
           {totalCount > 0 ? (
-            <Text style={styles.sectionHeading}>Today's Medicines</Text>
+            <Text style={[styles.sectionHeading, isRTL && styles.textRTL]}>{t.todaysMedicines}</Text>
           ) : null}
         </View>
       }
       renderItem={({ item }) => {
         const isDone = item.status === 'recorded' || item.status === 'skipped';
         const isRecording = recordingId === item.occurrenceId;
+        const isSpeaking = speakingOccurrenceId === item.occurrenceId;
 
         return (
-          <View style={[styles.doseCard, isDone ? styles.doseCardDone : null]}>
-            <View style={styles.cardTopRow}>
-              <View style={styles.timeBadge}>
-                <Ionicons name="alarm-outline" size={16} color={theme.colors.primary} />
-                <Text style={styles.timeBadgeText}>{item.timeLocal}</Text>
+          <View style={[styles.doseCard, dynCardStyle, isDone ? styles.doseCardDone : null]}>
+            <View style={[styles.cardTopRow, isRTL && styles.rowRTL]}>
+              <View style={[styles.timeBadge, isRTL && styles.rowRTL]}>
+                <Ionicons name="alarm-outline" size={isLarge ? 20 : 16} color={theme.colors.primary} />
+                <Text style={[styles.timeBadgeText, { fontSize: dynTimeSize }]}>{item.timeLocal}</Text>
               </View>
               {renderStatusBadge(item.status)}
             </View>
 
-            <Text style={styles.medicineTitle}>{item.medicineName}</Text>
+            <Text style={[styles.medicineTitle, { fontSize: dynMedTitleSize, color: dynMedTitleColor }, isRTL && styles.textRTL]}>
+              {item.medicineName}
+            </Text>
 
-            <View style={styles.personRow}>
+            <View style={[styles.personRow, isRTL && styles.rowRTL]}>
               <View style={[styles.personAvatar, { backgroundColor: item.careProfileColor }]}>
-                <Text style={styles.personAvatarText}>
+                <Text style={[styles.personAvatarText, isLarge && { fontSize: 16 }]}>
                   {item.careProfileName.charAt(0).toUpperCase()}
                 </Text>
               </View>
-              <Text style={styles.personText}>For {item.careProfileName}</Text>
+              <Text style={[styles.personText, { fontSize: dynPersonSize }, isRTL && styles.textRTL]}>
+                {t.forPerson} {item.careProfileName}
+              </Text>
             </View>
 
             {item.instructions ? (
-              <View style={styles.instructionsBox}>
-                <Ionicons name="document-text-outline" size={14} color={theme.colors.textMuted} />
-                <Text style={styles.instructionsText}>{item.instructions}</Text>
+              <View style={[styles.instructionsBox, isRTL && styles.rowRTL]}>
+                <Ionicons name="document-text-outline" size={isLarge ? 18 : 14} color={theme.colors.textMuted} />
+                <Text style={[styles.instructionsText, { fontSize: dynInstructionsSize }, isRTL && styles.textRTL]}>
+                  {item.instructions}
+                </Text>
               </View>
             ) : null}
 
-            {!isDone ? (
-              <View style={styles.actionButtonsRow}>
-                <Pressable
-                  style={[styles.actionBtn, styles.takenBtn]}
-                  onPress={() => handleRecordDose(item, 'taken')}
-                  disabled={isRecording}
-                >
-                  {isRecording ? (
-                    <ActivityIndicator color={theme.colors.surface} size="small" />
-                  ) : (
-                    <>
-                      <Ionicons name="checkmark" size={18} color={theme.colors.surface} />
-                      <Text style={styles.takenBtnText}>Taken</Text>
-                    </>
-                  )}
-                </Pressable>
+            <View style={[styles.actionButtonsRow, isRTL && styles.rowRTL]}>
+              {!isDone ? (
+                <>
+                  <Pressable
+                    style={[styles.actionBtn, styles.takenBtn, isLarge && { minHeight: 52 }, isRTL && styles.rowRTL]}
+                    onPress={() => handleRecordDose(item, 'taken')}
+                    disabled={isRecording}
+                  >
+                    {isRecording ? (
+                      <ActivityIndicator color={theme.colors.surface} size="small" />
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark" size={isLarge ? 22 : 18} color={theme.colors.surface} />
+                        <Text style={[styles.takenBtnText, { fontSize: dynActionBtnTextSize }]}>{t.taken}</Text>
+                      </>
+                    )}
+                  </Pressable>
 
-                <Pressable
-                  style={[styles.actionBtn, styles.skipBtn]}
-                  onPress={() => handleRecordDose(item, 'skipped')}
-                  disabled={isRecording}
-                >
-                  <Ionicons name="play-skip-forward-outline" size={16} color={theme.colors.textMuted} />
-                  <Text style={styles.skipBtnText}>Skip</Text>
-                </Pressable>
-              </View>
-            ) : null}
+                  <Pressable
+                    style={[
+                      styles.actionBtn,
+                      styles.skipBtn,
+                      isLarge && { minHeight: 52 },
+                      isHighContrast && { borderColor: '#111827', borderWidth: 2 },
+                      isRTL && styles.rowRTL,
+                    ]}
+                    onPress={() => handleRecordDose(item, 'skipped')}
+                    disabled={isRecording}
+                  >
+                    <Ionicons name="play-skip-forward-outline" size={isLarge ? 20 : 16} color={theme.colors.textMuted} />
+                    <Text style={[styles.skipBtnText, { fontSize: dynActionBtnTextSize }]}>{t.skip}</Text>
+                  </Pressable>
+                </>
+              ) : null}
+
+              <Pressable
+                style={[
+                  styles.actionBtn,
+                  styles.hearBtn,
+                  isLarge && { minHeight: 52 },
+                  isHighContrast && { borderColor: '#1B4332', borderWidth: 2 },
+                  isSpeaking ? styles.hearBtnActive : null,
+                  isRTL && styles.rowRTL,
+                ]}
+                onPress={() => handleHearThis(item)}
+              >
+                <Ionicons
+                  name={isSpeaking ? 'volume-high' : 'volume-high-outline'}
+                  size={isLarge ? 22 : 18}
+                  color={isSpeaking ? theme.colors.surface : theme.colors.primary}
+                />
+                <Text style={[styles.hearBtnText, { fontSize: dynActionBtnTextSize }, isSpeaking ? styles.hearBtnTextActive : null]}>
+                  {t.hearThis}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         );
       }}
@@ -451,21 +594,19 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
   },
   profileBadge: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    marginTop: theme.spacing.sm,
+    alignSelf: 'flex-start',
     backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: theme.radius.full,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginTop: theme.spacing.sm,
   },
   profileBadgeText: {
     fontSize: theme.typography.small,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.primary,
   },
   progressCard: {
@@ -488,12 +629,12 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   progressValue: {
-    fontSize: theme.typography.label,
-    fontWeight: '700',
-    color: theme.colors.primary,
+    fontSize: theme.typography.small,
+    color: theme.colors.textMuted,
+    fontWeight: '600',
   },
   progressBarTrack: {
-    height: 10,
+    height: 8,
     backgroundColor: theme.colors.background,
     borderRadius: theme.radius.full,
     overflow: 'hidden',
@@ -506,12 +647,12 @@ const styles = StyleSheet.create({
   messageBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
+    gap: 8,
+    backgroundColor: '#EDF5F2',
     borderWidth: 1,
     borderColor: theme.colors.primary,
-    padding: theme.spacing.sm,
     borderRadius: theme.radius.md,
+    padding: theme.spacing.sm,
     marginBottom: theme.spacing.md,
   },
   messageText: {
@@ -651,7 +792,7 @@ const styles = StyleSheet.create({
   },
   actionButtonsRow: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
     marginTop: theme.spacing.md,
   },
   actionBtn: {
@@ -662,13 +803,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingHorizontal: 4,
   },
   takenBtn: {
     backgroundColor: theme.colors.primary,
   },
   takenBtnText: {
     color: theme.colors.surface,
-    fontSize: theme.typography.body,
+    fontSize: theme.typography.label,
     fontWeight: '800',
   },
   skipBtn: {
@@ -678,8 +820,24 @@ const styles = StyleSheet.create({
   },
   skipBtnText: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.body,
+    fontSize: theme.typography.label,
     fontWeight: '700',
+  },
+  hearBtn: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
+  },
+  hearBtnActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  hearBtnText: {
+    color: theme.colors.primary,
+    fontSize: theme.typography.label,
+    fontWeight: '700',
+  },
+  hearBtnTextActive: {
+    color: theme.colors.surface,
   },
   badge: {
     flexDirection: 'row',
@@ -709,5 +867,12 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: theme.typography.small,
     fontWeight: '700',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

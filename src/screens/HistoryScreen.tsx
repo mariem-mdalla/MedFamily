@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { CareProfile, DoseLog } from '../types/database';
 
@@ -19,6 +20,7 @@ type StatusFilter = 'all' | 'taken' | 'skipped';
 
 export default function HistoryScreen() {
   const { profile } = useAuth();
+  const { t, isRTL } = useTranslation();
   const [logs, setLogs] = useState<DoseLog[]>([]);
   const [careProfiles, setCareProfiles] = useState<CareProfile[]>([]);
   const [profilesMap, setProfilesMap] = useState<Map<string, { name: string; color: string }>>(
@@ -110,20 +112,18 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Dose History</Text>
-      <Text style={styles.subtitle}>
-        {isAdmin
-          ? 'Log of recorded doses for all household members.'
-          : 'Log of your recorded medication doses.'}
+      <Text style={[styles.title, isRTL && styles.textRTL]}>{t.doseHistory}</Text>
+      <Text style={[styles.subtitle, isRTL && styles.textRTL]}>
+        {isAdmin ? t.historySubtitleAdmin : t.historySubtitleMember}
       </Text>
 
       <View style={styles.filterSection}>
-        <View style={styles.statusChipsRow}>
+        <View style={[styles.statusChipsRow, isRTL && styles.rowRTL]}>
           {(
             [
-              { id: 'all', label: 'All Doses' },
-              { id: 'taken', label: 'Taken' },
-              { id: 'skipped', label: 'Skipped' },
+              { id: 'all', label: t.allDoses },
+              { id: 'taken', label: t.taken },
+              { id: 'skipped', label: t.skip },
             ] as const
           ).map((chip) => {
             const isSelected = statusFilter === chip.id;
@@ -145,10 +145,10 @@ export default function HistoryScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.personChipsRow}
+            contentContainerStyle={[styles.personChipsRow, isRTL && styles.rowRTL]}
           >
             <Pressable
-              style={[styles.personFilterChip, personFilter === 'all' ? styles.personFilterChipSelected : null]}
+              style={[styles.personFilterChip, personFilter === 'all' ? styles.personFilterChipSelected : null, isRTL && styles.rowRTL]}
               onPress={() => setPersonFilter('all')}
             >
               <Text
@@ -157,7 +157,7 @@ export default function HistoryScreen() {
                   personFilter === 'all' ? styles.personFilterChipTextSelected : null,
                 ]}
               >
-                All People
+                {t.allPeople}
               </Text>
             </Pressable>
             {careProfiles.map((cp) => {
@@ -166,7 +166,7 @@ export default function HistoryScreen() {
               return (
                 <Pressable
                   key={cp.id}
-                  style={[styles.personFilterChip, isSelected ? styles.personFilterChipSelected : null]}
+                  style={[styles.personFilterChip, isSelected ? styles.personFilterChipSelected : null, isRTL && styles.rowRTL]}
                   onPress={() => setPersonFilter(cp.id)}
                 >
                   <View style={[styles.miniAvatar, { backgroundColor: cp.color }]}>
@@ -189,7 +189,7 @@ export default function HistoryScreen() {
 
       {isLoading ? <ActivityIndicator style={styles.loader} color={theme.colors.primary} /> : null}
 
-      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+      {errorMessage ? <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errorMessage}</Text> : null}
 
       <FlatList
         data={filteredLogs}
@@ -199,9 +199,9 @@ export default function HistoryScreen() {
           !isLoading ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="time-outline" size={44} color={theme.colors.secondary} />
-              <Text style={styles.emptyTitle}>No recorded doses yet</Text>
-              <Text style={styles.emptyText}>
-                When doses are recorded as Taken or Skipped on the Today screen, they will appear here.
+              <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t.noRecordedDoses}</Text>
+              <Text style={[styles.emptyText, isRTL && styles.textRTL]}>
+                {t.noRecordedDosesSubtitle}
               </Text>
             </View>
           ) : undefined
@@ -218,7 +218,7 @@ export default function HistoryScreen() {
           const isTaken = item.status === 'taken';
 
           const formattedTime = item.recorded_at
-            ? new Date(item.recorded_at).toLocaleTimeString(undefined, {
+            ? new Date(item.recorded_at).toLocaleTimeString(isRTL ? 'ar-SA' : 'fr-FR', {
                 hour: '2-digit',
                 minute: '2-digit',
               })
@@ -226,8 +226,8 @@ export default function HistoryScreen() {
 
           return (
             <View style={styles.card}>
-              <View style={styles.cardTopRow}>
-                <View style={styles.dateBadge}>
+              <View style={[styles.cardTopRow, isRTL && styles.rowRTL]}>
+                <View style={[styles.dateBadge, isRTL && styles.rowRTL]}>
                   <Ionicons name="calendar-outline" size={13} color={theme.colors.textMuted} />
                   <Text style={styles.dateBadgeText}>{item.occurrence_date}</Text>
                   <Text style={styles.timeBullet}>·</Text>
@@ -238,6 +238,7 @@ export default function HistoryScreen() {
                   style={[
                     styles.statusBadge,
                     isTaken ? styles.statusBadgeTaken : styles.statusBadgeSkipped,
+                    isRTL && styles.rowRTL,
                   ]}
                 >
                   <Ionicons
@@ -251,29 +252,31 @@ export default function HistoryScreen() {
                       { color: isTaken ? theme.colors.status.taken : theme.colors.status.skipped },
                     ]}
                   >
-                    {isTaken ? 'Taken' : 'Skipped'}
+                    {isTaken ? t.taken : t.skipped}
                   </Text>
                 </View>
               </View>
 
-              <Text style={styles.medicineTitle}>{item.medicine_name}</Text>
+              <Text style={[styles.medicineTitle, isRTL && styles.textRTL]}>{item.medicine_name}</Text>
 
-              <View style={styles.personRow}>
+              <View style={[styles.personRow, isRTL && styles.rowRTL]}>
                 <View style={[styles.avatar, { backgroundColor: personInfo.color }]}>
                   <Text style={styles.avatarText}>{initial}</Text>
                 </View>
-                <Text style={styles.personText}>For {personInfo.name}</Text>
+                <Text style={[styles.personText, isRTL && styles.textRTL]}>{t.forPerson} {personInfo.name}</Text>
               </View>
 
               {item.instructions ? (
-                <View style={styles.instructionsBox}>
+                <View style={[styles.instructionsBox, isRTL && styles.rowRTL]}>
                   <Ionicons name="document-text-outline" size={13} color={theme.colors.textMuted} />
-                  <Text style={styles.instructionsText}>{item.instructions}</Text>
+                  <Text style={[styles.instructionsText, isRTL && styles.textRTL]}>{item.instructions}</Text>
                 </View>
               ) : null}
 
               {formattedTime ? (
-                <Text style={styles.recordedAtText}>Recorded at {formattedTime}</Text>
+                <Text style={[styles.recordedAtText, isRTL && styles.textRTL]}>
+                  {t.recordedAt}: {formattedTime}
+                </Text>
               ) : null}
             </View>
           );
@@ -352,22 +355,22 @@ const styles = StyleSheet.create({
   },
   personFilterChipText: {
     fontSize: theme.typography.small,
-    fontWeight: '600',
-    color: theme.colors.textMuted,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
   personFilterChipTextSelected: {
     color: theme.colors.primary,
   },
   miniAvatar: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   miniAvatarText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
   },
   loader: {
@@ -400,7 +403,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.label,
     color: theme.colors.textMuted,
     textAlign: 'center',
-    lineHeight: 22,
   },
   card: {
     backgroundColor: theme.colors.surface,
@@ -414,7 +416,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: theme.spacing.xs,
   },
   dateBadge: {
     flexDirection: 'row',
@@ -432,7 +434,7 @@ const styles = StyleSheet.create({
   },
   timeBullet: {
     color: theme.colors.textMuted,
-    fontSize: theme.typography.small,
+    fontWeight: '800',
   },
   statusBadge: {
     flexDirection: 'row',
@@ -503,5 +505,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textMuted,
     marginTop: 2,
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

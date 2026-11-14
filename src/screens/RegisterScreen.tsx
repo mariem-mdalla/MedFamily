@@ -2,6 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  I18nManager,
   Pressable,
   StyleSheet,
   Text,
@@ -9,12 +10,14 @@ import {
   View,
 } from 'react-native';
 import { theme } from '../constants/theme';
+import { useTranslation } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 
 type RegisterScreenProps = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
 export default function RegisterScreen({ navigation }: RegisterScreenProps) {
+  const { t, isRTL, lang, setGuestLanguage } = useTranslation();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +29,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
     const trimmedEmail = email.trim().toLowerCase();
 
     if (!trimmedName || !trimmedEmail || password.length < 6) {
-      setMessage('Enter your name, email, and a password with at least 6 characters.');
+      setMessage(t.enterRegistrationDetails);
       return;
     }
 
@@ -51,29 +54,50 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
     }
 
     if (!data.session) {
-      setMessage('Account created. Confirm your email, then sign in.');
+      setMessage(t.accountCreatedCheckEmail);
       return;
     }
 
-    setMessage('Account created.');
+    if (data.session?.user && lang !== 'fr') {
+      try {
+        await supabase.from('profiles').update({ language: lang }).eq('id', data.session.user.id);
+      } catch {
+        // non-blocking
+      }
+    }
+
+    setMessage(t.accountCreated);
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Create account</Text>
-      <Text style={styles.message}>The first account becomes the household admin.</Text>
+      <View style={[styles.langRow, isRTL && styles.rowRTL]}>
+        <Pressable
+          style={styles.langPill}
+          onPress={() => {
+            const next = lang === 'ar' ? 'fr' : 'ar';
+            setGuestLanguage(next);
+            I18nManager.forceRTL(next === 'ar');
+          }}
+        >
+          <Text style={styles.langPillText}>{lang === 'ar' ? 'Français' : 'العربية'}</Text>
+        </Pressable>
+      </View>
+
+      <Text style={[styles.title, isRTL && styles.textRTL]}>{t.createAccount}</Text>
+      <Text style={[styles.message, isRTL && styles.textRTL]}>{t.registerSubtitle}</Text>
 
       <TextInput
-        style={styles.input}
-        placeholder="Your name"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.displayNamePlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={displayName}
         onChangeText={setDisplayName}
         autoCapitalize="words"
       />
       <TextInput
-        style={styles.input}
-        placeholder="Email"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.emailPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={email}
         onChangeText={setEmail}
@@ -81,26 +105,26 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
         keyboardType="email-address"
       />
       <TextInput
-        style={styles.input}
-        placeholder="Password"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.passwordPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
 
-      {message ? <Text style={styles.feedback}>{message}</Text> : null}
+      {message ? <Text style={[styles.feedback, isRTL && styles.textRTL]}>{message}</Text> : null}
 
       <Pressable style={styles.button} onPress={handleRegister} disabled={isSubmitting}>
         {isSubmitting ? (
           <ActivityIndicator color={theme.colors.surface} />
         ) : (
-          <Text style={styles.buttonText}>Register</Text>
+          <Text style={styles.buttonText}>{t.createAccount}</Text>
         )}
       </Pressable>
 
       <Pressable onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.link}>Already have an account? Sign in</Text>
+        <Text style={styles.link}>{t.iAlreadyHaveAnAccount}</Text>
       </Pressable>
     </View>
   );
@@ -112,6 +136,24 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     justifyContent: 'center',
     padding: theme.spacing.lg,
+  },
+  langRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: theme.spacing.md,
+  },
+  langPill: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: theme.radius.full,
+  },
+  langPillText: {
+    fontSize: theme.typography.small,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
   title: {
     fontSize: theme.typography.title,
@@ -159,5 +201,16 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  inputRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

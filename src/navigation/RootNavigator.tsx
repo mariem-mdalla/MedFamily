@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import AddMedicineScreen from '../screens/AddMedicineScreen';
 import AddPersonScreen from '../screens/AddPersonScreen';
 import EditMedicineScreen from '../screens/EditMedicineScreen';
@@ -20,6 +21,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
   const { session, profile, isLoading } = useAuth();
+  const { t } = useTranslation();
 
   if (isLoading || (session && !profile)) {
     return (
@@ -65,32 +67,32 @@ export default function RootNavigator() {
           <Stack.Screen
             name="AddMedicine"
             component={AddMedicineScreen}
-            options={{ title: 'Add medicine' }}
+            options={{ title: t.addMedicineTitle }}
           />
           <Stack.Screen
             name="EditMedicine"
             component={EditMedicineScreen}
-            options={{ title: 'Edit medicine' }}
+            options={{ title: t.editMedicineTitle }}
           />
           <Stack.Screen
             name="AddPerson"
             component={AddPersonScreen}
-            options={{ title: 'Add person' }}
+            options={{ title: t.addPersonTitle }}
           />
           <Stack.Screen
             name="EditPerson"
             component={EditPersonScreen}
-            options={{ title: 'Edit person' }}
+            options={{ title: t.editPersonTitle }}
           />
           <Stack.Screen
             name="ManageInvites"
             component={ManageInvitesScreen}
-            options={{ title: 'Invite codes' }}
+            options={{ title: t.manageInvitesTitle }}
           />
           <Stack.Screen
             name="History"
             component={HistoryScreen}
-            options={{ title: 'History' }}
+            options={{ title: t.doseHistory }}
           />
         </>
       ) : (
@@ -103,17 +105,17 @@ export default function RootNavigator() {
           <Stack.Screen
             name="Register"
             component={RegisterScreen}
-            options={{ title: 'Register' }}
+            options={{ title: t.createAccount }}
           />
           <Stack.Screen
             name="Login"
             component={LoginScreen}
-            options={{ title: 'Sign in' }}
+            options={{ title: t.signIn }}
           />
           <Stack.Screen
             name="JoinWithCode"
             component={JoinWithCodeScreen}
-            options={{ title: 'Join with code' }}
+            options={{ title: t.joinHousehold }}
           />
         </>
       )}

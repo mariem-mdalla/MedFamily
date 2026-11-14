@@ -2,6 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  I18nManager,
   Pressable,
   StyleSheet,
   Text,
@@ -9,12 +10,14 @@ import {
   View,
 } from 'react-native';
 import { theme } from '../constants/theme';
+import { useTranslation } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 
 type LoginScreenProps = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: LoginScreenProps) {
+  const { t, isRTL, lang, setGuestLanguage } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -24,7 +27,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     const trimmedEmail = email.trim().toLowerCase();
 
     if (!trimmedEmail || !password) {
-      setMessage('Enter your email and password.');
+      setMessage(t.enterEmailAndPassword);
       return;
     }
 
@@ -45,12 +48,25 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sign in</Text>
-      <Text style={styles.message}>Use the email and password for your MedFamily account.</Text>
+      <View style={[styles.langRow, isRTL && styles.rowRTL]}>
+        <Pressable
+          style={styles.langPill}
+          onPress={() => {
+            const next = lang === 'ar' ? 'fr' : 'ar';
+            setGuestLanguage(next);
+            I18nManager.forceRTL(next === 'ar');
+          }}
+        >
+          <Text style={styles.langPillText}>{lang === 'ar' ? 'Français' : 'العربية'}</Text>
+        </Pressable>
+      </View>
+
+      <Text style={[styles.title, isRTL && styles.textRTL]}>{t.signIn}</Text>
+      <Text style={[styles.message, isRTL && styles.textRTL]}>{t.signInSubtitle}</Text>
 
       <TextInput
-        style={styles.input}
-        placeholder="Email"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.emailPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={email}
         onChangeText={setEmail}
@@ -58,26 +74,26 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         keyboardType="email-address"
       />
       <TextInput
-        style={styles.input}
-        placeholder="Password"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.passwordPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
 
-      {message ? <Text style={styles.feedback}>{message}</Text> : null}
+      {message ? <Text style={[styles.feedback, isRTL && styles.textRTL]}>{message}</Text> : null}
 
       <Pressable style={styles.button} onPress={handleLogin} disabled={isSubmitting}>
         {isSubmitting ? (
           <ActivityIndicator color={theme.colors.surface} />
         ) : (
-          <Text style={styles.buttonText}>Sign in</Text>
+          <Text style={styles.buttonText}>{t.signIn}</Text>
         )}
       </Pressable>
 
       <Pressable onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.link}>Need an account? Register</Text>
+        <Text style={styles.link}>{t.createAccount}</Text>
       </Pressable>
     </View>
   );
@@ -89,6 +105,24 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     justifyContent: 'center',
     padding: theme.spacing.lg,
+  },
+  langRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: theme.spacing.md,
+  },
+  langPill: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: theme.radius.full,
+  },
+  langPillText: {
+    fontSize: theme.typography.small,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
   title: {
     fontSize: theme.typography.title,
@@ -136,5 +170,16 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  inputRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

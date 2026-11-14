@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 import { CareProfile } from '../types/database';
@@ -20,6 +21,7 @@ import { CareProfile } from '../types/database';
 export default function PeopleScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile } = useAuth();
+  const { t, isRTL } = useTranslation();
   const [people, setPeople] = useState<CareProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -62,13 +64,18 @@ export default function PeopleScreen() {
   );
 
   function handleDelete(person: CareProfile) {
+    if (person.linked_user_id) {
+      Alert.alert(t.cannotDelete, t.cannotDeleteLinked);
+      return;
+    }
+
     Alert.alert(
-      'Remove person',
-      `Remove "${person.display_name}" from the household? Their past dose history will be kept.`,
+      t.removePerson,
+      t.removePersonConfirm(person.display_name),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Remove',
+          text: t.remove,
           style: 'destructive',
           onPress: async () => {
             const { error } = await supabase
@@ -91,16 +98,19 @@ export default function PeopleScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>People</Text>
-      <Text style={styles.subtitle}>Manage the care profiles in your household.</Text>
+      <Text style={[styles.title, isRTL && styles.textRTL]}>{t.people}</Text>
+      <Text style={[styles.subtitle, isRTL && styles.textRTL]}>{t.peopleSubtitle}</Text>
 
-      <Pressable style={styles.addButton} onPress={() => navigation.navigate('AddPerson')}>
+      <Pressable
+        style={[styles.addButton, isRTL && styles.rowRTL]}
+        onPress={() => navigation.navigate('AddPerson')}
+      >
         <Ionicons name="add" size={20} color={theme.colors.surface} />
-        <Text style={styles.addButtonText}>Add person</Text>
+        <Text style={styles.addButtonText}>{t.addPerson}</Text>
       </Pressable>
 
       {isLoading ? <ActivityIndicator style={styles.loader} color={theme.colors.primary} /> : null}
-      {message ? <Text style={styles.errorText}>{message}</Text> : null}
+      {message ? <Text style={[styles.errorText, isRTL && styles.textRTL]}>{message}</Text> : null}
 
       <FlatList
         data={people}
@@ -110,9 +120,9 @@ export default function PeopleScreen() {
           !isLoading ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="people-outline" size={40} color={theme.colors.secondary} />
-              <Text style={styles.emptyTitle}>No care profiles yet</Text>
-              <Text style={styles.emptyText}>
-                Tap "Add person" to create a care profile for a family member.
+              <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t.noPeople}</Text>
+              <Text style={[styles.emptyText, isRTL && styles.textRTL]}>
+                {t.noPeopleSubtitle}
               </Text>
             </View>
           ) : undefined
@@ -121,23 +131,28 @@ export default function PeopleScreen() {
           const initial = item.display_name.charAt(0).toUpperCase();
           const isLinked = item.linked_user_id !== null;
           return (
-            <View style={styles.card}>
-              <View style={styles.cardLeft}>
+            <View style={[styles.card, isRTL && styles.rowRTL]}>
+              <View style={[styles.cardLeft, isRTL && styles.rowRTL]}>
                 <View style={[styles.avatar, { backgroundColor: item.color }]}>
                   <Text style={styles.avatarText}>{initial}</Text>
                 </View>
                 <View style={styles.cardInfo}>
-                  <Text style={styles.cardName}>{item.display_name}</Text>
-                  {item.label ? <Text style={styles.cardLabel}>{item.label}</Text> : null}
+                  <Text style={[styles.cardName, isRTL && styles.textRTL]}>{item.display_name}</Text>
+                  {item.label ? <Text style={[styles.cardLabel, isRTL && styles.textRTL]}>{item.label}</Text> : null}
                   {isLinked ? (
-                    <View style={styles.linkedBadge}>
+                    <View style={[styles.linkedBadge, isRTL && styles.rowRTL]}>
                       <Ionicons name="person-circle-outline" size={12} color={theme.colors.primary} />
-                      <Text style={styles.linkedBadgeText}>Linked account</Text>
+                      <Text style={styles.linkedBadgeText}>{t.linkedAccount}</Text>
                     </View>
+                  ) : null}
+                  {isLinked ? (
+                    <Text style={[styles.linkedExplanation, isRTL && styles.textRTL]}>
+                      {t.cannotDeleteLinked}
+                    </Text>
                   ) : null}
                 </View>
               </View>
-              <View style={styles.cardActions}>
+              <View style={[styles.cardActions, isRTL && styles.rowRTL]}>
                 <Pressable
                   style={styles.iconBtn}
                   onPress={() => navigation.navigate('EditPerson', { careProfileId: item.id })}
@@ -145,13 +160,23 @@ export default function PeopleScreen() {
                 >
                   <Ionicons name="pencil-outline" size={20} color={theme.colors.primary} />
                 </Pressable>
-                <Pressable
-                  style={styles.iconBtn}
-                  onPress={() => handleDelete(item)}
-                  hitSlop={8}
-                >
-                  <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
-                </Pressable>
+                {isLinked ? (
+                  <Pressable
+                    style={[styles.iconBtn, styles.iconBtnDisabled]}
+                    onPress={() => Alert.alert(t.cannotDelete, t.cannotDeleteLinked)}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={theme.colors.border} />
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    style={styles.iconBtn}
+                    onPress={() => handleDelete(item)}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+                  </Pressable>
+                )}
               </View>
             </View>
           );
@@ -277,6 +302,12 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: '600',
   },
+  linkedExplanation: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
   cardActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -291,5 +322,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: theme.colors.border,
+  },
+  iconBtnDisabled: {
+    opacity: 0.45,
+    backgroundColor: theme.colors.surface,
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

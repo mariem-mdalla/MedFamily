@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  I18nManager,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,12 +16,15 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
+import { scheduleTestReminder } from '../lib/medicationReminders';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 
 export default function SettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile, session, signOut, refreshProfile } = useAuth();
+  const { t, isRTL } = useTranslation();
 
   const [name, setName] = useState(profile?.display_name ?? '');
   const [isSavingName, setIsSavingName] = useState(false);
@@ -46,7 +51,7 @@ export default function SettingsScreen() {
     if (!profile) return;
     const trimmed = name.trim();
     if (!trimmed) {
-      setErrorMessage('Name cannot be empty.');
+      setErrorMessage(t.nameEmpty);
       return;
     }
 
@@ -67,7 +72,7 @@ export default function SettingsScreen() {
     }
 
     await refreshProfile();
-    setStatusMessage('Name updated successfully.');
+    setStatusMessage(t.nameSaved);
   }
 
   async function handleToggleVoice(nextVal: boolean) {
@@ -88,7 +93,16 @@ export default function SettingsScreen() {
     }
 
     await refreshProfile();
-    setStatusMessage('Voice reminder preference saved.');
+    setStatusMessage(t.voiceSaved);
+  }
+
+  async function handleTestReminder() {
+    setStatusMessage('');
+    setErrorMessage('');
+    const ok = await scheduleTestReminder(language);
+    if (ok) {
+      setStatusMessage(t.testReminderScheduled);
+    }
   }
 
   async function handleToggleLargeText(nextVal: boolean) {
@@ -109,7 +123,7 @@ export default function SettingsScreen() {
     }
 
     await refreshProfile();
-    setStatusMessage('Large text preference saved.');
+    setStatusMessage(t.largeTextSaved);
   }
 
   async function handleToggleHighContrast(nextVal: boolean) {
@@ -130,7 +144,7 @@ export default function SettingsScreen() {
     }
 
     await refreshProfile();
-    setStatusMessage('High contrast preference saved.');
+    setStatusMessage(t.highContrastSaved);
   }
 
   async function handleChangeLanguage(nextLang: 'fr' | 'ar') {
@@ -151,7 +165,19 @@ export default function SettingsScreen() {
     }
 
     await refreshProfile();
-    setStatusMessage(nextLang === 'ar' ? 'تم حفظ اللغة بنجاح.' : 'Langue enregistrée avec succès.');
+
+    const shouldBeRTL = nextLang === 'ar';
+    if (I18nManager.isRTL !== shouldBeRTL) {
+      I18nManager.allowRTL(shouldBeRTL);
+      I18nManager.forceRTL(shouldBeRTL);
+      Alert.alert(
+        t.restartRequiredTitle,
+        t.restartRequiredMessage,
+        [{ text: t.ok }],
+      );
+    }
+
+    setStatusMessage(t.languageSaved);
   }
 
   async function handleSignOut() {
@@ -167,19 +193,43 @@ export default function SettingsScreen() {
 
   const hasNameChanged = name.trim() !== (profile?.display_name ?? '');
 
+  const dynTextSize = largeText ? 18 : 15;
+  const dynTitleSize = largeText ? 25 : 18;
+  const dynHelperSize = largeText ? 15 : 13;
+  const dynCardStyle = highContrast
+    ? { borderColor: '#111827', borderWidth: 2, backgroundColor: '#FFFFFF' }
+    : null;
+  const dynLabelColor = highContrast ? '#000000' : theme.colors.textMuted;
+  const dynTextColor = highContrast ? '#000000' : theme.colors.text;
+
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.card}>
-        <Text style={styles.sectionHeader}>Profile</Text>
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        highContrast ? { backgroundColor: '#F0F2F5' } : null,
+      ]}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={[styles.card, dynCardStyle]}>
+        <Text style={[styles.sectionHeader, { fontSize: dynTitleSize, color: dynTextColor }, isRTL && styles.textRTL]}>
+          {t.profile}
+        </Text>
 
         <View style={styles.fieldBlock}>
-          <Text style={styles.label}>Name</Text>
-          <View style={styles.nameRow}>
+          <Text style={[styles.label, { fontSize: dynTextSize, color: dynLabelColor }, isRTL && styles.textRTL]}>
+            {t.name}
+          </Text>
+          <View style={[styles.nameRow, isRTL && styles.rowRTL]}>
             <TextInput
-              style={styles.nameInput}
+              style={[
+                styles.nameInput,
+                { fontSize: dynTextSize, color: dynTextColor },
+                highContrast ? { borderColor: '#111827', borderWidth: 1.5 } : null,
+                isRTL && styles.inputRTL,
+              ]}
               value={name}
               onChangeText={setName}
-              placeholder="Your name"
+              placeholder={t.displayNamePlaceholder}
               placeholderTextColor={theme.colors.textMuted}
             />
             {hasNameChanged ? (
@@ -191,43 +241,67 @@ export default function SettingsScreen() {
                 {isSavingName ? (
                   <ActivityIndicator size="small" color={theme.colors.surface} />
                 ) : (
-                  <Text style={styles.saveNameBtnText}>Save</Text>
+                  <Text style={[styles.saveNameBtnText, { fontSize: dynTextSize }]}>{t.save}</Text>
                 )}
               </Pressable>
             ) : null}
           </View>
         </View>
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.value}>{session?.user.email ?? '—'}</Text>
+        <View style={[styles.row, isRTL && styles.rowRTL]}>
+          <Text style={[styles.label, { fontSize: dynTextSize, color: dynLabelColor }]}>{t.email}</Text>
+          <Text style={[styles.value, { fontSize: dynTextSize, color: dynTextColor }]}>
+            {session?.user.email ?? '—'}
+          </Text>
         </View>
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Role</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              {profile?.role === 'admin' ? 'Household Admin' : 'Family Member'}
+        <View style={[styles.row, isRTL && styles.rowRTL]}>
+          <Text style={[styles.label, { fontSize: dynTextSize, color: dynLabelColor }]}>{t.role}</Text>
+          <View style={[styles.badge, highContrast ? { borderColor: '#111827', borderWidth: 1.5 } : null]}>
+            <Text style={[styles.badgeText, { fontSize: dynHelperSize }]}>
+              {profile?.role === 'admin' ? t.householdAdmin : t.familyMember}
             </Text>
           </View>
         </View>
 
         <View style={styles.fieldBlock}>
-          <Text style={styles.label}>Language</Text>
-          <View style={styles.langRow}>
+          <Text style={[styles.label, { fontSize: dynTextSize, color: dynLabelColor }, isRTL && styles.textRTL]}>
+            {t.language}
+          </Text>
+          <View style={[styles.langRow, isRTL && styles.rowRTL]}>
             <Pressable
-              style={[styles.langChip, language === 'fr' ? styles.langChipSelected : null]}
+              style={[
+                styles.langChip,
+                language === 'fr' ? styles.langChipSelected : null,
+                highContrast && language !== 'fr' ? { borderColor: '#111827' } : null,
+              ]}
               onPress={() => handleChangeLanguage('fr')}
             >
-              <Text style={[styles.langChipText, language === 'fr' ? styles.langChipTextSelected : null]}>
+              <Text
+                style={[
+                  styles.langChipText,
+                  { fontSize: dynTextSize },
+                  language === 'fr' ? styles.langChipTextSelected : null,
+                ]}
+              >
                 Français
               </Text>
             </Pressable>
             <Pressable
-              style={[styles.langChip, language === 'ar' ? styles.langChipSelected : null]}
+              style={[
+                styles.langChip,
+                language === 'ar' ? styles.langChipSelected : null,
+                highContrast && language !== 'ar' ? { borderColor: '#111827' } : null,
+              ]}
               onPress={() => handleChangeLanguage('ar')}
             >
-              <Text style={[styles.langChipText, language === 'ar' ? styles.langChipTextSelected : null]}>
+              <Text
+                style={[
+                  styles.langChipText,
+                  { fontSize: dynTextSize },
+                  language === 'ar' ? styles.langChipTextSelected : null,
+                ]}
+              >
                 العربية
               </Text>
             </Pressable>
@@ -236,28 +310,38 @@ export default function SettingsScreen() {
       </View>
 
       {profile?.role === 'admin' ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionHeader}>Household</Text>
+        <View style={[styles.card, dynCardStyle]}>
+          <Text style={[styles.sectionHeader, { fontSize: dynTitleSize, color: dynTextColor }, isRTL && styles.textRTL]}>
+            {t.household}
+          </Text>
           <Pressable
-            style={styles.actionRow}
+            style={[styles.actionRow, isRTL && styles.rowRTL]}
             onPress={() => navigation.navigate('ManageInvites')}
           >
-            <View style={styles.actionLeft}>
-              <Ionicons name="ticket-outline" size={20} color={theme.colors.primary} />
-              <Text style={styles.actionText}>Manage invite codes</Text>
+            <View style={[styles.actionLeft, isRTL && styles.rowRTL]}>
+              <Ionicons name="ticket-outline" size={largeText ? 24 : 20} color={theme.colors.primary} />
+              <Text style={[styles.actionText, { fontSize: dynTextSize, color: dynTextColor }]}>
+                {t.manageInvites}
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+            <Ionicons name={isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={theme.colors.textMuted} />
           </Pressable>
         </View>
       ) : null}
 
-      <View style={styles.card}>
-        <Text style={styles.sectionHeader}>Preferences</Text>
+      <View style={[styles.card, dynCardStyle]}>
+        <Text style={[styles.sectionHeader, { fontSize: dynTitleSize, color: dynTextColor }, isRTL && styles.textRTL]}>
+          {t.preferences}
+        </Text>
 
-        <View style={styles.switchRow}>
-          <View style={styles.switchLabelContainer}>
-            <Text style={styles.label}>Voice Reminder</Text>
-            <Text style={styles.helperText}>Speak medication instructions aloud</Text>
+        <View style={[styles.switchRow, isRTL && styles.rowRTL]}>
+          <View style={[styles.switchLabelContainer, isRTL ? { marginLeft: theme.spacing.md, marginRight: 0 } : null]}>
+            <Text style={[styles.label, { fontSize: dynTextSize, color: dynTextColor }, isRTL && styles.textRTL]}>
+              {t.voiceReminder}
+            </Text>
+            <Text style={[styles.helperText, { fontSize: dynHelperSize, color: dynLabelColor }, isRTL && styles.textRTL]}>
+              {t.voiceReminderHelper}
+            </Text>
           </View>
           <Switch
             value={voiceEnabled}
@@ -267,10 +351,24 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <View style={styles.switchRow}>
-          <View style={styles.switchLabelContainer}>
-            <Text style={styles.label}>Large Text</Text>
-            <Text style={styles.helperText}>Increase readability across cards</Text>
+        {voiceEnabled ? (
+          <Pressable
+            style={[styles.testReminderBtn, isRTL && styles.rowRTL]}
+            onPress={handleTestReminder}
+          >
+            <Ionicons name="notifications-outline" size={16} color={theme.colors.primary} />
+            <Text style={[styles.testReminderText, { fontSize: dynHelperSize }]}>{t.testReminderBtn}</Text>
+          </Pressable>
+        ) : null}
+
+        <View style={[styles.switchRow, isRTL && styles.rowRTL]}>
+          <View style={[styles.switchLabelContainer, isRTL ? { marginLeft: theme.spacing.md, marginRight: 0 } : null]}>
+            <Text style={[styles.label, { fontSize: dynTextSize, color: dynTextColor }, isRTL && styles.textRTL]}>
+              {t.largeText}
+            </Text>
+            <Text style={[styles.helperText, { fontSize: dynHelperSize, color: dynLabelColor }, isRTL && styles.textRTL]}>
+              {t.largeTextHelper}
+            </Text>
           </View>
           <Switch
             value={largeText}
@@ -280,10 +378,14 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <View style={styles.switchRow}>
-          <View style={styles.switchLabelContainer}>
-            <Text style={styles.label}>High Contrast</Text>
-            <Text style={styles.helperText}>Higher contrast borders and buttons</Text>
+        <View style={[styles.switchRow, isRTL && styles.rowRTL]}>
+          <View style={[styles.switchLabelContainer, isRTL ? { marginLeft: theme.spacing.md, marginRight: 0 } : null]}>
+            <Text style={[styles.label, { fontSize: dynTextSize, color: dynTextColor }, isRTL && styles.textRTL]}>
+              {t.highContrast}
+            </Text>
+            <Text style={[styles.helperText, { fontSize: dynHelperSize, color: dynLabelColor }, isRTL && styles.textRTL]}>
+              {t.highContrastHelper}
+            </Text>
           </View>
           <Switch
             value={highContrast}
@@ -295,16 +397,16 @@ export default function SettingsScreen() {
       </View>
 
       {statusMessage ? (
-        <View style={styles.statusBox}>
+        <View style={[styles.statusBox, isRTL && styles.rowRTL]}>
           <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.primary} />
-          <Text style={styles.statusText}>{statusMessage}</Text>
+          <Text style={[styles.statusText, isRTL && styles.textRTL]}>{statusMessage}</Text>
         </View>
       ) : null}
 
       {errorMessage ? (
-        <View style={styles.errorBox}>
+        <View style={[styles.errorBox, isRTL && styles.rowRTL]}>
           <Ionicons name="alert-circle-outline" size={18} color={theme.colors.error} />
-          <Text style={styles.errorText}>{errorMessage}</Text>
+          <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errorMessage}</Text>
         </View>
       ) : null}
 
@@ -312,7 +414,7 @@ export default function SettingsScreen() {
         {isSigningOut ? (
           <ActivityIndicator color={theme.colors.error} />
         ) : (
-          <Text style={styles.signOutText}>Sign out</Text>
+          <Text style={styles.signOutText}>{t.signOut}</Text>
         )}
       </Pressable>
     </ScrollView>
@@ -420,6 +522,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.background,
   },
+  testReminderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#EDF5F2',
+    borderRadius: theme.radius.sm,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  testReminderText: {
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
   switchLabelContainer: {
     flex: 1,
     marginRight: theme.spacing.md,
@@ -515,5 +633,16 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     fontSize: theme.typography.body,
     fontWeight: '700',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  inputRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

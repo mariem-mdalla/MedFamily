@@ -11,12 +11,14 @@ import {
   View,
 } from 'react-native';
 import { theme } from '../constants/theme';
+import { useTranslation } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 
 type JoinWithCodeScreenProps = NativeStackScreenProps<RootStackParamList, 'JoinWithCode'>;
 
 export default function JoinWithCodeScreen({ navigation }: JoinWithCodeScreenProps) {
+  const { t, isRTL, lang } = useTranslation();
   const [inviteCode, setInviteCode] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -31,19 +33,19 @@ export default function JoinWithCodeScreen({ navigation }: JoinWithCodeScreenPro
     const trimmedEmail = email.trim().toLowerCase();
 
     if (!trimmedCode) {
-      setErrorMessage('Enter the invite code.');
+      setErrorMessage(t.enterInviteCode);
       return;
     }
     if (!trimmedName) {
-      setErrorMessage('Enter your name.');
+      setErrorMessage(t.enterYourName);
       return;
     }
     if (!trimmedEmail) {
-      setErrorMessage('Enter your email address.');
+      setErrorMessage(t.enterYourEmail);
       return;
     }
     if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters.');
+      setErrorMessage(t.passwordMinLength);
       return;
     }
 
@@ -65,7 +67,7 @@ export default function JoinWithCodeScreen({ navigation }: JoinWithCodeScreenPro
     const check = verifyData as { valid: boolean; message?: string } | null;
     if (check && !check.valid) {
       setIsSubmitting(false);
-      setErrorMessage(check.message ?? 'This invite code is invalid or has expired.');
+      setErrorMessage(check.message ?? t.enterInviteCode);
       return;
     }
 
@@ -88,7 +90,16 @@ export default function JoinWithCodeScreen({ navigation }: JoinWithCodeScreenPro
     }
 
     if (!data.session) {
-      setSuccessMessage('Account created. Check your email to confirm it, then sign in.');
+      setSuccessMessage(t.accountCreatedCheckEmail);
+    } else {
+      if (lang !== 'fr') {
+        try {
+          await supabase.from('profiles').update({ language: lang }).eq('id', data.session.user.id);
+        } catch {
+          // non-blocking
+        }
+      }
+      setSuccessMessage(t.joinSuccess);
     }
   }
 
@@ -96,16 +107,16 @@ export default function JoinWithCodeScreen({ navigation }: JoinWithCodeScreenPro
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.headerCard}>
         <Ionicons name="ticket-outline" size={32} color={theme.colors.primary} />
-        <Text style={styles.headerTitle}>Join with invite code</Text>
-        <Text style={styles.headerSubtitle}>
-          An admin from the household shared a code with you. Enter it below to join their family.
+        <Text style={[styles.headerTitle, isRTL && styles.textRTL]}>{t.joinHousehold}</Text>
+        <Text style={[styles.headerSubtitle, isRTL && styles.textRTL]}>
+          {t.joinSubtitle}
         </Text>
       </View>
 
-      <Text style={styles.fieldLabel}>Invite Code</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.inviteCode}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="e.g. A1B2C3D4"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.inviteCodePlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={inviteCode}
         onChangeText={setInviteCode}
@@ -113,19 +124,19 @@ export default function JoinWithCodeScreen({ navigation }: JoinWithCodeScreenPro
         autoCorrect={false}
       />
 
-      <Text style={styles.fieldLabel}>Your Name</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.yourName}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="e.g. Sophie"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.displayNamePlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={displayName}
         onChangeText={setDisplayName}
       />
 
-      <Text style={styles.fieldLabel}>Email</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.email}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="your@email.com"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.emailPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={email}
         onChangeText={setEmail}
@@ -134,10 +145,10 @@ export default function JoinWithCodeScreen({ navigation }: JoinWithCodeScreenPro
         autoCorrect={false}
       />
 
-      <Text style={styles.fieldLabel}>Password</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.password}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Minimum 6 characters"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.passwordPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={password}
         onChangeText={setPassword}
@@ -145,16 +156,16 @@ export default function JoinWithCodeScreen({ navigation }: JoinWithCodeScreenPro
       />
 
       {errorMessage ? (
-        <View style={styles.errorBox}>
+        <View style={[styles.errorBox, isRTL && styles.rowRTL]}>
           <Ionicons name="alert-circle-outline" size={18} color={theme.colors.error} />
-          <Text style={styles.errorText}>{errorMessage}</Text>
+          <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errorMessage}</Text>
         </View>
       ) : null}
 
       {successMessage ? (
-        <View style={styles.successBox}>
+        <View style={[styles.successBox, isRTL && styles.rowRTL]}>
           <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.primary} />
-          <Text style={styles.successText}>{successMessage}</Text>
+          <Text style={[styles.successText, isRTL && styles.textRTL]}>{successMessage}</Text>
         </View>
       ) : null}
 
@@ -166,13 +177,13 @@ export default function JoinWithCodeScreen({ navigation }: JoinWithCodeScreenPro
         {isSubmitting ? (
           <ActivityIndicator color={theme.colors.surface} />
         ) : (
-          <Text style={styles.buttonText}>Join household</Text>
+          <Text style={styles.buttonText}>{t.join}</Text>
         )}
       </Pressable>
 
-      <Pressable style={styles.backLink} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back-outline" size={16} color={theme.colors.primary} />
-        <Text style={styles.backLinkText}>Back to Welcome</Text>
+      <Pressable style={[styles.backLink, isRTL && styles.rowRTL]} onPress={() => navigation.goBack()}>
+        <Ionicons name={isRTL ? "arrow-forward-outline" : "arrow-back-outline"} size={16} color={theme.colors.primary} />
+        <Text style={styles.backLinkText}>{t.welcomeTitle}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -285,5 +296,16 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.label,
     color: theme.colors.primary,
     fontWeight: '600',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  inputRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

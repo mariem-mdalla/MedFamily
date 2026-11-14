@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
+import { useTranslation } from '../i18n';
 import TodayScreen from '../screens/TodayScreen';
 import MedicinesScreen from '../screens/MedicinesScreen';
 import PeopleScreen from '../screens/PeopleScreen';
@@ -13,6 +14,7 @@ const Tab = createBottomTabNavigator<AdminTabParamList>();
 
 export default function AdminTabNavigator() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <Tab.Navigator
@@ -46,7 +48,7 @@ export default function AdminTabNavigator() {
         name="Today"
         component={TodayScreen}
         options={{
-          title: 'Today',
+          title: t.tabToday,
           tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
         }}
       />
@@ -54,7 +56,7 @@ export default function AdminTabNavigator() {
         name="Medicines"
         component={MedicinesScreen}
         options={{
-          title: 'Medicines',
+          title: t.tabMedicines,
           tabBarIcon: ({ color, size }) => <Ionicons name="medkit-outline" size={size} color={color} />,
         }}
       />
@@ -62,7 +64,7 @@ export default function AdminTabNavigator() {
         name="People"
         component={PeopleScreen}
         options={{
-          title: 'People',
+          title: t.tabPeople,
           tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" size={size} color={color} />,
         }}
       />
@@ -70,7 +72,7 @@ export default function AdminTabNavigator() {
         name="History"
         component={HistoryScreen}
         options={{
-          title: 'History',
+          title: t.tabHistory,
           tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
         }}
       />
@@ -78,7 +80,7 @@ export default function AdminTabNavigator() {
         name="Settings"
         component={SettingsScreen}
         options={{
-          title: 'Settings',
+          title: t.tabSettings,
           tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" size={size} color={color} />,
         }}
       />

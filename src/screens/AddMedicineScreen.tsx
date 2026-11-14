@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import MedicineForm, { DEFAULT_FORM_VALUES, MedicineFormValues } from '../components/MedicineForm';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import { scheduleMedicationReminder } from '../lib/medicationReminders';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
@@ -13,6 +14,7 @@ type AddMedicineScreenProps = NativeStackScreenProps<RootStackParamList, 'AddMed
 
 export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps) {
   const { profile } = useAuth();
+  const { t } = useTranslation();
   const [careProfiles, setCareProfiles] = useState<CareProfile[]>([]);
   const [defaultCareProfileId, setDefaultCareProfileId] = useState('');
   const [loadError, setLoadError] = useState('');
@@ -156,7 +158,7 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
       initialValues={{ ...DEFAULT_FORM_VALUES, careProfileId: defaultCareProfileId }}
       careProfiles={careProfiles}
       onSave={handleSave}
-      submitLabel="Save medicine"
+      submitLabel={t.save}
     />
   );
 }

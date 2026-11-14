@@ -17,6 +17,17 @@
   - Duplicate protection ("Already recorded" without crashing).
   - Saves medicine name and instructions snapshot in dose_logs.
   - Displays person's name, color, and initial badge on each dose card.
+- Task 6: "Hear this" voice button on every Today card (`expo-speech`):
+  - Third button on every Today card speaking `"Il est temps de prendre {medicine name}"` (FR) or `"حان وقت تناول {medicine name}"` (AR).
+  - Uses only the saved medicine name from medications.
+  - Works even if the voice setting toggle is off (manual button always speaks).
+  - Handles multiple medicines sharing the same time: speaks them sequentially one after another.
+  - Detects missing language voice packs on device, gives calm UI feedback and actionable instructions for iOS & Android.
+- Task 7: French and Arabic internationalization with Right-to-Left (RTL) layout:
+  - Centralized translation dictionary architecture (`en.ts`, `fr.ts`, `ar.ts`, `src/i18n/index.ts`) with English as permanent fallback.
+  - 100% of screen titles, buttons, status words (Recorded, Skipped, Not recorded yet, Upcoming), form labels, placeholders, alerts, and errors translated.
+  - Language switcher in Settings saving to `profiles.language` ('fr' | 'ar').
+  - Full RTL layout support for Arabic: right-to-left flex rows, text alignment, mirrored navigation arrows, and native `I18nManager.forceRTL` integration with restart explanation.
 - Viewing household medicines list (MedicinesScreen) with pencil (edit) and trash (delete) icons per card, plus person's name, color, and initial badge.
 - Shared MedicineForm component (`src/components/MedicineForm.tsx`) used by both Add and Edit screens — single source of truth for the form UI.
 - Adding a medicine (AddMedicineScreen):
@@ -68,7 +79,6 @@
 ## Not started
 - Several times per day in one medicine (optional, only if time remains)
 - Calendar view of the schedule (bonus, late)
-- French and Arabic with RTL
 - Resources: reminder sound, help video, PDF manual
 - Notifications opening the dose card (last)
 - PDF report
@@ -81,6 +91,7 @@
 | `003_dose_logs.sql` | yes |
 | `004_recurrence_and_optional_stock.sql` | yes |
 | `005_medication_form_and_dose.sql` | yes |
-| `006_people_care_profiles.sql` | no |
-| `007_invites.sql` | no |
-| `008_tighten_dose_logs_policy.sql` | no |
+| `006_people_care_profiles.sql` | yes |
+| `007_invites.sql` | yes |
+| `008_tighten_dose_logs_policy.sql` | yes |
+| `009_prevent_deleting_linked_care_profiles.sql` | no |

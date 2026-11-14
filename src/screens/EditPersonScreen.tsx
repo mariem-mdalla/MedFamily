@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 
@@ -32,6 +33,7 @@ const COLOR_OPTIONS = [
 
 export default function EditPersonScreen({ navigation, route }: EditPersonScreenProps) {
   const { profile } = useAuth();
+  const { t, isRTL } = useTranslation();
   const { careProfileId } = route.params;
 
   const [displayName, setDisplayName] = useState('');
@@ -64,7 +66,7 @@ export default function EditPersonScreen({ navigation, route }: EditPersonScreen
       }
 
       if (error || !data) {
-        setLoadError('Could not load this person.');
+        setLoadError(t.couldNotLoadPerson);
         setIsLoading(false);
         return;
       }
@@ -85,12 +87,12 @@ export default function EditPersonScreen({ navigation, route }: EditPersonScreen
     const trimmedName = displayName.trim();
 
     if (!trimmedName) {
-      setErrorMessage('Enter a name for this person.');
+      setErrorMessage(t.enterName);
       return;
     }
 
     if (!profile) {
-      setErrorMessage('Profile not ready.');
+      setErrorMessage(t.profileNotReady);
       return;
     }
 
@@ -124,31 +126,31 @@ export default function EditPersonScreen({ navigation, route }: EditPersonScreen
   if (loadError) {
     return (
       <View style={styles.centeredMessage}>
-        <Text style={styles.centeredMessageText}>{loadError}</Text>
+        <Text style={[styles.centeredMessageText, isRTL && styles.textRTL]}>{loadError}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.previewRow}>
+      <View style={[styles.previewRow, isRTL && styles.rowRTL]}>
         <View style={[styles.previewAvatar, { backgroundColor: selectedColor }]}>
           <Text style={styles.previewInitial}>{initial}</Text>
         </View>
-        <Text style={styles.previewName}>{displayName.trim() || 'Name preview'}</Text>
+        <Text style={[styles.previewName, isRTL && styles.textRTL]}>{displayName.trim() || t.preview}</Text>
       </View>
 
-      <Text style={styles.fieldLabel}>Name</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.personName}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="e.g. Grandpa, Emma"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.personNamePlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={displayName}
         onChangeText={setDisplayName}
       />
 
-      <Text style={styles.fieldLabel}>Color</Text>
-      <View style={styles.colorGrid}>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.color}</Text>
+      <View style={[styles.colorGrid, isRTL && styles.rowRTL]}>
         {COLOR_OPTIONS.map((color) => (
           <Pressable
             key={color}
@@ -163,9 +165,9 @@ export default function EditPersonScreen({ navigation, route }: EditPersonScreen
       </View>
 
       {errorMessage ? (
-        <View style={styles.errorBox}>
+        <View style={[styles.errorBox, isRTL && styles.rowRTL]}>
           <Ionicons name="alert-circle-outline" size={18} color={theme.colors.error} />
-          <Text style={styles.errorText}>{errorMessage}</Text>
+          <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errorMessage}</Text>
         </View>
       ) : null}
 
@@ -174,7 +176,7 @@ export default function EditPersonScreen({ navigation, route }: EditPersonScreen
         onPress={handleSave}
         disabled={isSubmitting}
       >
-        <Text style={styles.buttonText}>{isSubmitting ? 'Saving…' : 'Save changes'}</Text>
+        <Text style={styles.buttonText}>{isSubmitting ? t.saving : t.save}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -293,5 +295,16 @@ const styles = StyleSheet.create({
     color: theme.colors.surface,
     fontSize: theme.typography.body,
     fontWeight: '700',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  inputRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

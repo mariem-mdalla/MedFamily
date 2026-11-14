@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 
@@ -31,6 +32,7 @@ const COLOR_OPTIONS = [
 
 export default function AddPersonScreen({ navigation }: AddPersonScreenProps) {
   const { profile } = useAuth();
+  const { t, isRTL } = useTranslation();
   const [displayName, setDisplayName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
   const [errorMessage, setErrorMessage] = useState('');
@@ -42,12 +44,12 @@ export default function AddPersonScreen({ navigation }: AddPersonScreenProps) {
     const trimmedName = displayName.trim();
 
     if (!trimmedName) {
-      setErrorMessage('Enter a name for this person.');
+      setErrorMessage(t.enterName);
       return;
     }
 
     if (!profile) {
-      setErrorMessage('Profile not ready.');
+      setErrorMessage(t.profileNotReady);
       return;
     }
 
@@ -74,25 +76,25 @@ export default function AddPersonScreen({ navigation }: AddPersonScreenProps) {
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.previewRow}>
+      <View style={[styles.previewRow, isRTL && styles.rowRTL]}>
         <View style={[styles.previewAvatar, { backgroundColor: selectedColor }]}>
           <Text style={styles.previewInitial}>{initial}</Text>
         </View>
-        <Text style={styles.previewName}>{displayName.trim() || 'Name preview'}</Text>
+        <Text style={[styles.previewName, isRTL && styles.textRTL]}>{displayName.trim() || t.preview}</Text>
       </View>
 
-      <Text style={styles.fieldLabel}>Name</Text>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.personName}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="e.g. Grandpa, Emma"
+        style={[styles.input, isRTL && styles.inputRTL]}
+        placeholder={t.personNamePlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={displayName}
         onChangeText={setDisplayName}
         autoFocus
       />
 
-      <Text style={styles.fieldLabel}>Color</Text>
-      <View style={styles.colorGrid}>
+      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.color}</Text>
+      <View style={[styles.colorGrid, isRTL && styles.rowRTL]}>
         {COLOR_OPTIONS.map((color) => (
           <Pressable
             key={color}
@@ -107,9 +109,9 @@ export default function AddPersonScreen({ navigation }: AddPersonScreenProps) {
       </View>
 
       {errorMessage ? (
-        <View style={styles.errorBox}>
+        <View style={[styles.errorBox, isRTL && styles.rowRTL]}>
           <Ionicons name="alert-circle-outline" size={18} color={theme.colors.error} />
-          <Text style={styles.errorText}>{errorMessage}</Text>
+          <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errorMessage}</Text>
         </View>
       ) : null}
 
@@ -118,7 +120,7 @@ export default function AddPersonScreen({ navigation }: AddPersonScreenProps) {
         onPress={handleSave}
         disabled={isSubmitting}
       >
-        <Text style={styles.buttonText}>{isSubmitting ? 'Saving…' : 'Add person'}</Text>
+        <Text style={styles.buttonText}>{isSubmitting ? t.saving : t.addPerson}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -225,5 +227,16 @@ const styles = StyleSheet.create({
     color: theme.colors.surface,
     fontSize: theme.typography.body,
     fontWeight: '700',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  inputRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });

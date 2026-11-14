@@ -4,50 +4,56 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n';
 import { RootStackParamList } from '../navigation/types';
 
 export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile, session } = useAuth();
+  const { t, isRTL, lang } = useTranslation();
 
-  const todayFormatted = new Date().toLocaleDateString(undefined, {
+  const todayFormatted = new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'fr-FR', {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
   });
 
+  const userName = profile?.display_name ?? session?.user.email ?? '';
+
   return (
     <View style={styles.container}>
       <View style={styles.headerCard}>
-        <Text style={styles.dateText}>{todayFormatted}</Text>
-        <Text style={styles.greetingText}>Hi, {profile?.display_name ?? session?.user.email ?? 'there'}</Text>
-        <View style={styles.roleBadge}>
+        <Text style={[styles.dateText, isRTL && styles.textRTL]}>{todayFormatted}</Text>
+        <Text style={[styles.greetingText, isRTL && styles.textRTL]}>
+          {t.hi}, {userName}
+        </Text>
+        <View style={[styles.roleBadge, isRTL && styles.roleBadgeRTL]}>
           <Text style={styles.roleText}>
-            {profile?.role === 'admin' ? 'Household Admin' : 'Family Member'}
+            {profile?.role === 'admin' ? t.householdAdmin : t.familyMember}
           </Text>
         </View>
       </View>
 
       <View style={styles.overviewCard}>
-        <View style={styles.overviewHeading}>
-          <View style={styles.overviewIcon}>
+        <View style={[styles.overviewHeading, isRTL && styles.rowRTL]}>
+          <View style={[styles.overviewIcon, isRTL && styles.overviewIconRTL]}>
             <Ionicons name="medkit-outline" size={24} color={theme.colors.primary} />
           </View>
-          <Text style={styles.cardTitle}>
-            {profile?.role === 'admin' ? 'Manage medicines' : 'Your schedule'}
+          <Text style={[styles.cardTitle, isRTL && styles.textRTL]}>
+            {profile?.role === 'admin' ? t.manageMedicinesCardTitle : t.yourScheduleCardTitle}
           </Text>
         </View>
-        <Text style={styles.cardDescription}>
+        <Text style={[styles.cardDescription, isRTL && styles.textRTL]}>
           {profile?.role === 'admin'
-            ? 'Add medicines and schedules your household already follows. Review saved medicines in the Medicines tab.'
-            : 'Your household admin manages your medicine schedule. Contact them if a medicine or time is missing.'}
+            ? t.manageMedicinesCardDesc
+            : t.yourScheduleCardDesc}
         </Text>
         {profile?.role === 'admin' ? (
           <Pressable
             style={styles.actionButton}
             onPress={() => navigation.navigate('AddMedicine')}
           >
-            <Text style={styles.actionButtonText}>Add a medicine</Text>
+            <Text style={styles.actionButtonText}>{t.addAMedicine}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -92,6 +98,9 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     marginTop: theme.spacing.sm,
   },
+  roleBadgeRTL: {
+    alignSelf: 'flex-end',
+  },
   roleText: {
     fontSize: theme.typography.small,
     fontWeight: '600',
@@ -125,6 +134,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: theme.spacing.sm,
   },
+  overviewIconRTL: {
+    marginRight: 0,
+    marginLeft: theme.spacing.sm,
+  },
   cardDescription: {
     fontSize: theme.typography.label,
     color: theme.colors.textMuted,
@@ -142,5 +155,12 @@ const styles = StyleSheet.create({
     color: theme.colors.surface,
     fontSize: theme.typography.body,
     fontWeight: '700',
+  },
+  textRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  rowRTL: {
+    flexDirection: 'row-reverse',
   },
 });
