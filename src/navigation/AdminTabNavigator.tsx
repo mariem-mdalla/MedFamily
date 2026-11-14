@@ -5,6 +5,7 @@ import { theme } from '../constants/theme';
 import TodayScreen from '../screens/TodayScreen';
 import MedicinesScreen from '../screens/MedicinesScreen';
 import PeopleScreen from '../screens/PeopleScreen';
+import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import { AdminTabParamList } from './types';
 
@@ -36,7 +37,7 @@ export default function AdminTabNavigator() {
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: '600',
         },
       }}
@@ -63,6 +64,14 @@ export default function AdminTabNavigator() {
         options={{
           title: 'People',
           tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
         }}
       />
       <Tab.Screen

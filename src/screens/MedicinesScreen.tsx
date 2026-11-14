@@ -144,8 +144,8 @@ export default function MedicinesScreen() {
         }
         renderItem={({ item }) => {
           const personInfo = careProfilesMap.get(item.care_profile_id) ?? {
-            name: profile?.display_name ?? 'Household',
-            color: theme.colors.primary,
+            name: 'Removed person',
+            color: theme.colors.textMuted,
           };
           const initial = personInfo.name.charAt(0).toUpperCase();
 

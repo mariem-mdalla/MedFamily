@@ -107,7 +107,7 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
         recurrence: values.recurrence,
         weekdays: values.recurrence === 'weekly' ? values.selectedDays : [],
         day_of_month: values.recurrence === 'monthly' ? monthlyDay : null,
-        timezone: 'Africa/Tunis',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Tunis',
       })
       .select('id')
       .single();

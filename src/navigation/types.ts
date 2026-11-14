@@ -4,11 +4,13 @@ export type AdminTabParamList = {
   Today: undefined;
   Medicines: undefined;
   People: undefined;
+  History: undefined;
   Settings: undefined;
 };
 
 export type MemberTabParamList = {
   Today: undefined;
+  History: undefined;
   Settings: undefined;
 };
 
@@ -24,4 +26,5 @@ export type RootStackParamList = {
   AddPerson: undefined;
   EditPerson: { careProfileId: string };
   ManageInvites: undefined;
+  History: undefined;
 };

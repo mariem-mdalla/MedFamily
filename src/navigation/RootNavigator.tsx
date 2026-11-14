@@ -6,6 +6,7 @@ import AddMedicineScreen from '../screens/AddMedicineScreen';
 import AddPersonScreen from '../screens/AddPersonScreen';
 import EditMedicineScreen from '../screens/EditMedicineScreen';
 import EditPersonScreen from '../screens/EditPersonScreen';
+import HistoryScreen from '../screens/HistoryScreen';
 import JoinWithCodeScreen from '../screens/JoinWithCodeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import ManageInvitesScreen from '../screens/ManageInvitesScreen';
@@ -85,6 +86,11 @@ export default function RootNavigator() {
             name="ManageInvites"
             component={ManageInvitesScreen}
             options={{ title: 'Invite codes' }}
+          />
+          <Stack.Screen
+            name="History"
+            component={HistoryScreen}
+            options={{ title: 'History' }}
           />
         </>
       ) : (

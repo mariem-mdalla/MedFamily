@@ -147,8 +147,8 @@ export default function TodayScreen() {
       }
 
       const profileInfo = profilesMap.get(med.care_profile_id) ?? {
-        name: profile.display_name,
-        color: theme.colors.primary,
+        name: 'Removed person',
+        color: theme.colors.textMuted,
       };
 
       for (const sched of med.schedules) {

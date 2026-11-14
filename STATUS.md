@@ -45,15 +45,28 @@
   - Database function decides role (`handle_new_user` trigger) — client never sends a role.
   - Member restrictions: only sees their own doses, cannot edit medicines, cannot elevate themselves to admin.
   - Helper invite: adds another admin with household management privileges.
+- Security tightening and automated RLS tests:
+  - Migration `008_tighten_dose_logs_policy.sql`: enforced that inserted doses must match a real schedule and medication of the family with matching care profile. Rejecting invites linked to already-claimed care profiles.
+  - `supabase/security_tests.sql`: comprehensive 8-point automated test suite with allow and deny checks for admin tenant isolation, member privacy, anonymous denial, role escalation blocking, invite expiration/reuse/already-linked rejection, and dose duplicate rejection.
+- Settings with 100% REAL data (`SettingsScreen`):
+  - Name editable with inline save button persisting to `profiles.display_name`.
+  - Real email from authentication session.
+  - Real role badge (Household Admin / Family Member).
+  - Real language switcher (Français / العربية) persisting to `profiles.language`.
+  - Real interactive switches for Voice Reminder, Large Text, and High Contrast persisting directly to the `profiles` table.
+  - Audited and removed all fake/hardcoded fallback values across screens (fallback for deleted care profiles now properly indicates 'Removed person' instead of spoofing the logged-in user; real dynamic timezones used).
+- History screen (`HistoryScreen`):
+  - Tab in both Admin and Member navigation (`History`).
+  - Lists all recorded doses from `dose_logs` with medicine name snapshot, person avatar, date, time, status badge (Taken vs Skipped), and instructions snapshot.
+  - Admins view the entire household history with optional person filtering.
+  - Members view only their own linked doses.
+  - Status filter chips (All Doses, Taken, Skipped).
 
 ## In progress
-- Run migration `006_people_care_profiles.sql` in Supabase.
-- Run migration `007_invites.sql` in Supabase.
+
 
 ## Not started
 - Several times per day in one medicine (optional, only if time remains)
-- Audit and remove hardcoded or fake data in all screens, starting with Settings
-- Tighten dose_logs insert policy so a dose must match a real schedule and care profile (new migration)
 - Calendar view of the schedule (bonus, late)
 - French and Arabic with RTL
 - Resources: reminder sound, help video, PDF manual
@@ -70,3 +83,4 @@
 | `005_medication_form_and_dose.sql` | yes |
 | `006_people_care_profiles.sql` | no |
 | `007_invites.sql` | no |
+| `008_tighten_dose_logs_policy.sql` | no |
