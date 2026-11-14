@@ -72,6 +72,16 @@
   - Admins view the entire household history with optional person filtering.
   - Members view only their own linked doses.
   - Status filter chips (All Doses, Taken, Skipped).
+- Task 8: Resources with qualifiers:
+  - Reminder sound (`assets/sounds/reminder.wav`) played within the app via `expo-audio` (`src/lib/soundPlayer.ts`) when a reminder fires in foreground. Documented 3-line explanation on Expo Go native audio limitations for system notification channels.
+  - PDF user manuals (`assets/pdfs/manual_fr.pdf` and `assets/pdfs/manual_ar.pdf`) opened natively according to current language setting via Settings (`src/lib/pdfManual.ts` using `File.preview` from `expo-file-system`). Documented 2-line trade-off of bundled offline assets vs remote hosting.
+  - Real brand logo image on Welcome screen with screen resolution qualifiers: `logo.png` (1x), `logo@2x.png` (2x), `logo@3x.png` (3x), rendered cleanly via React Native's automatic density resolution.
+- Task 9: Reminders and Reminder Screen:
+  - Role-based reminder scheduling (`src/lib/scheduleReminders.ts`): Admin device schedules local notifications for every person in the household; member device schedules strictly for their linked care profile.
+  - Localized notification copy: "Il est temps de prendre {medicine name}" in French or "حان وقت تناول {medicine name}" in Arabic based on `profiles.language`.
+  - Automatic reminder rebuild engine (`rebuildAllReminders`) triggered on app launch/authentication and whenever schedules are created (`AddMedicineScreen`), edited (`EditMedicineScreen`), or deleted (`MedicinesScreen`).
+  - Dedicated `ReminderScreen` (`src/screens/ReminderScreen.tsx`): Opens automatically when a reminder arrives in foreground or when tapped from notification tray/lock screen. Displays medicine name, person avatar badge, scheduled time, with "Taken", "Skip", and "Hear this" action buttons. Plays reminder chime and automatically speaks only when `voice_enabled` is on.
+  - Documented technical constraints regarding Expo Go lockscreen full-screen intents and local device notification boundaries.
 
 ## In progress
 
@@ -79,8 +89,6 @@
 ## Not started
 - Several times per day in one medicine (optional, only if time remains)
 - Calendar view of the schedule (bonus, late)
-- Resources: reminder sound, help video, PDF manual
-- Notifications opening the dose card (last)
 - PDF report
 
 ## Supabase migrations

@@ -27,4 +27,13 @@ export type RootStackParamList = {
   EditPerson: { careProfileId: string };
   ManageInvites: undefined;
   History: undefined;
+  Reminder: {
+    medicationName: string;
+    careProfileId?: string;
+    careProfileName: string;
+    careProfileColor: string;
+    timeLocal: string;
+    scheduleId: string;
+    language: 'fr' | 'ar';
+  };
 };

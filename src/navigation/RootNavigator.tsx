@@ -12,6 +12,7 @@ import JoinWithCodeScreen from '../screens/JoinWithCodeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import ManageInvitesScreen from '../screens/ManageInvitesScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ReminderScreen from '../screens/ReminderScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import AdminTabNavigator from './AdminTabNavigator';
 import MemberTabNavigator from './MemberTabNavigator';
@@ -93,6 +94,11 @@ export default function RootNavigator() {
             name="History"
             component={HistoryScreen}
             options={{ title: t.doseHistory }}
+          />
+          <Stack.Screen
+            name="Reminder"
+            component={ReminderScreen}
+            options={{ headerShown: false }}
           />
         </>
       ) : (

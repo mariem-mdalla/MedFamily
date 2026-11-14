@@ -15,6 +15,7 @@ import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
 import { cancelScheduledRemindersForIds } from '../lib/medicationReminders';
+import { rebuildAllReminders } from '../lib/scheduleReminders';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 import { MedicationWithSchedules } from '../types/database';
@@ -106,6 +107,11 @@ export default function MedicinesScreen() {
             if (error) {
               setMessage(error.message);
               return;
+            }
+
+            // Rebuild all reminders after delete (Task 9c)
+            if (profile) {
+              rebuildAllReminders(profile, supabase).catch(() => {});
             }
 
             await loadMedicines();

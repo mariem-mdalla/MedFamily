@@ -18,6 +18,7 @@ import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
 import { scheduleTestReminder } from '../lib/medicationReminders';
+import { openManual } from '../lib/pdfManual';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 
@@ -409,6 +410,20 @@ export default function SettingsScreen() {
           <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errorMessage}</Text>
         </View>
       ) : null}
+
+      {/* Open user manual */}
+      <Pressable
+        style={[styles.actionRow, { marginTop: theme.spacing.lg }, isRTL && styles.rowRTL]}
+        onPress={() => openManual(profile?.language ?? 'fr', { manualLoading: t.manualLoading, manualError: t.manualError })}
+      >
+        <View style={[styles.actionLeft, isRTL && styles.rowRTL]}>
+          <Ionicons name="book-outline" size={20} color={theme.colors.primary} />
+          <Text style={[styles.actionText, { fontSize: dynTextSize, color: dynTextColor }]}>
+            {t.openManual}
+          </Text>
+        </View>
+        <Ionicons name={isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={theme.colors.textMuted} />
+      </Pressable>
 
       <Pressable style={styles.signOutButton} onPress={handleSignOut} disabled={isSigningOut}>
         {isSigningOut ? (

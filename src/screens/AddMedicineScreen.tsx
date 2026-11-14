@@ -6,6 +6,7 @@ import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
 import { scheduleMedicationReminder } from '../lib/medicationReminders';
+import { rebuildAllReminders } from '../lib/scheduleReminders';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 import { CareProfile } from '../types/database';
@@ -129,9 +130,13 @@ export default function AddMedicineScreen({ navigation }: AddMedicineScreenProps
         dayOfMonth: values.recurrence === 'monthly' ? monthlyDay : null,
         language: profile.language,
         scheduleId: savedSchedule.id,
+        careProfileId: values.careProfileId,
       });
     } catch {
     }
+
+    // Rebuild all reminders so the full schedule stays in sync (Task 9c)
+    rebuildAllReminders(profile, supabase).catch(() => {});
 
     navigation.goBack();
     return null;

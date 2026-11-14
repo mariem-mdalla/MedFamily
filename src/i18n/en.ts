@@ -231,6 +231,15 @@ export const en = {
   dailyRepeat: 'Every day',
   monthlyOnDay: (day: number | null) => day ? `Monthly on day ${day}` : 'Monthly',
   customDays: 'Custom days',
+
+  // Reminder screen (Task 9d)
+  reminderTitle: 'Medication Reminder',
+  reminderFor: 'For',
+
+  // Manual (Task 8b)
+  openManual: 'Open user manual',
+  manualLoading: 'Loading manual...',
+  manualError: 'Could not open the manual.',
 };
 
 export type TranslationKeys = typeof en;

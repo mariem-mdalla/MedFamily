@@ -1,4 +1,4 @@
-import { TranslationKeys } from './en';
+﻿import { TranslationKeys } from './en';
 
 export const ar: TranslationKeys = {
   // Navigation / Tabs
@@ -233,4 +233,13 @@ export const ar: TranslationKeys = {
   dailyRepeat: 'كل يوم',
   monthlyOnDay: (day: number | null) => day ? `شهرياً في يوم ${day}` : 'شهرياً',
   customDays: 'أيام مخصصة',
+
+  // Reminder screen (Task 9d)
+  reminderTitle: 'تذكير بالدواء',
+  reminderFor: 'لـ',
+
+  // Manual (Task 8b)
+  openManual: 'فتح دليل المستخدم',
+  manualLoading: 'جارٍ تحميل الدليل...',
+  manualError: 'تعذّر فتح الدليل.',
 };

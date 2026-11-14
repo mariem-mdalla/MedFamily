@@ -11,6 +11,10 @@ export type ReminderSchedule = {
   dayOfMonth: number | null;
   language: 'fr' | 'ar';
   scheduleId: string;
+  /** Optional: passed to notification data so ReminderScreen can show the person */
+  careProfileId?: string;
+  careProfileName?: string;
+  careProfileColor?: string;
 };
 
 export const NOTIFICATION_CHANNEL_ID = 'medication-reminders';
@@ -60,7 +64,7 @@ export async function scheduleMedicationReminder(schedule: ReminderSchedule): Pr
   const reminderBase =
     schedule.language === 'ar'
       ? `حان وقت تناول ${schedule.medicationName}${doseHint}.`
-      : `C'est l'heure de prendre ${schedule.medicationName}${doseHint}.`;
+      : `Il est temps de prendre ${schedule.medicationName}${doseHint}.`;
 
   const body = schedule.instructions ? `${reminderBase} ${schedule.instructions}` : reminderBase;
   const content = {
@@ -71,6 +75,10 @@ export async function scheduleMedicationReminder(schedule: ReminderSchedule): Pr
       scheduleId: schedule.scheduleId,
       medicationName: schedule.medicationName,
       language: schedule.language,
+      careProfileId: schedule.careProfileId ?? '',
+      careProfileName: schedule.careProfileName ?? '',
+      careProfileColor: schedule.careProfileColor ?? '',
+      timeLocal: schedule.timeLocal,
     },
   };
 
@@ -165,7 +173,11 @@ export async function scheduleTestReminder(language: 'fr' | 'ar', seconds = 5): 
   const title = isAr ? 'تذكير بالدواء (اختبار)' : 'Rappel de médicament (Test)';
   const body = isAr
     ? `حان وقت تناول ${medicineName}. خذ حبة واحدة بعد الأكل.`
-    : `C'est l'heure de prendre ${medicineName}. Prendre 1 comprimé après le repas.`;
+    : `Il est temps de prendre ${medicineName}. Prendre 1 comprimé après le repas.`;
+
+  const now = new Date();
+  const timeLocal = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const careProfileName = isAr ? 'أنا' : 'Moi';
 
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -173,8 +185,12 @@ export async function scheduleTestReminder(language: 'fr' | 'ar', seconds = 5): 
       body,
       sound: 'default',
       data: {
+        scheduleId: 'test',
         medicationName: medicineName,
         language,
+        careProfileName,
+        careProfileColor: '#1d4e89',
+        timeLocal,
         isTest: true,
       },
     },

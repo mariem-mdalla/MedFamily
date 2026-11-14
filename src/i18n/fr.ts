@@ -233,4 +233,13 @@ export const fr: TranslationKeys = {
   dailyRepeat: 'Tous les jours',
   monthlyOnDay: (day: number | null) => day ? `Tous les mois le ${day}` : 'Chaque mois',
   customDays: 'Jours choisis',
+
+  // Reminder screen (Task 9d)
+  reminderTitle: 'Rappel médicament',
+  reminderFor: 'Pour',
+
+  // Manual (Task 8b)
+  openManual: 'Ouvrir le manuel',
+  manualLoading: 'Chargement du manuel...',
+  manualError: 'Impossible d\'ouvrir le manuel.',
 };
