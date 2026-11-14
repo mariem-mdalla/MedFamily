@@ -14,10 +14,10 @@ Every migration must be run **in order** in the Supabase SQL Editor (or via the 
 | `006_people_care_profiles.sql` | Adds `linked_user_id`, `label`, and `color` columns to `care_profiles`. Makes `care_profile_id` nullable in `dose_logs` (history is kept even if the person is later removed). Adds RLS policies for care profile insert/update/delete and member read isolation. | `care_profiles`, `dose_logs` | **Yes** — `007` references `care_profiles`. |
 | `007_invites.sql` | Creates the `invites` table and the `verify_invite_code` RPC function. Members join a household by redeeming an invite code, which also links their care profile. | `invites`, `profiles`, `care_profiles` | **Yes** — `008` tightens dose_logs policies that reference care profiles. |
 | `008_tighten_dose_logs_policy.sql` | Replaces the original dose_logs INSERT policy with a stricter one: the inserted row must reference a real schedule, medication, and care profile all belonging to the user's family, and the care profile must match the schedule's medication. Also blocks invite codes already claimed by another user. | `dose_logs`, `invites` | **Yes** — run before `009`. |
-| `009_prevent_deleting_linked_care_profiles.sql` | Adds an RLS DELETE policy that only allows deletion of care profiles that have no linked user. Adds a BEFORE DELETE trigger (`prevent_linked_profile_delete`) as a safety net that raises an explicit error. **⚠️ NOT yet run in Supabase.** | `care_profiles` | No further migrations depend on it yet. |
+| `009_prevent_deleting_linked_care_profiles.sql` | Adds an RLS DELETE policy that only allows deletion of care profiles that have no linked user. Adds a BEFORE DELETE trigger (`prevent_linked_profile_delete`) as a safety net that raises an explicit error. | `care_profiles` | No further migrations depend on it yet. |
 
 ## Notes
 
+- **All migrations applied.** Migrations 001 through 009 have all been executed in Supabase.
 - **No missing numbers.** Files 001 through 009 are all present and in order.
 - **`security_tests.sql`** is not a migration. It is a read-only test suite that uses `DO $$ ... $$` blocks to verify RLS and security guarantees. Run it in the SQL Editor whenever you change policies; it leaves no permanent data behind.
-- **009 must still be applied.** Until migration 009 is run, the database does not block deletion of linked care profiles at the database level (only the app-side guard is active).

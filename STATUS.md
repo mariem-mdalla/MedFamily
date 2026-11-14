@@ -94,4 +94,4 @@
 | `006_people_care_profiles.sql` | yes |
 | `007_invites.sql` | yes |
 | `008_tighten_dose_logs_policy.sql` | yes |
-| `009_prevent_deleting_linked_care_profiles.sql` | no |
+| `009_prevent_deleting_linked_care_profiles.sql` | yes |
