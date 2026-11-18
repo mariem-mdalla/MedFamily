@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { useTranslation } from '../i18n';
+import { formatDateDDMMYYYY } from '../lib/dateUtils';
 import { supabase } from '../lib/supabase';
 import { CareProfile, Invite } from '../types/database';
 
@@ -30,6 +32,7 @@ function generateCode(): string {
 
 export default function ManageInvitesScreen() {
   const { profile, session } = useAuth();
+  const { fontSizes, colors, cardStyle, buttonStyle, isHighContrast } = useAppTheme();
   const { t, isRTL } = useTranslation();
   const [invites, setInvites] = useState<InviteWithProfile[]>([]);
   const [careProfiles, setCareProfiles] = useState<CareProfile[]>([]);
@@ -179,43 +182,75 @@ export default function ManageInvitesScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]} keyboardShouldPersistTaps="handled">
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.createInviteCode}</Text>
+        <Text style={[styles.sectionTitle, { fontSize: fontSizes.title, color: colors.text }, isRTL && styles.textRTL]}>{t.createInviteCode}</Text>
 
-        <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.roleLabel}</Text>
+        <Text style={[styles.fieldLabel, { fontSize: fontSizes.label, color: colors.text }, isRTL && styles.textRTL]}>{t.roleLabel}</Text>
         <View style={[styles.roleRow, isRTL && styles.rowRTL]}>
           <Pressable
-            style={[styles.roleChip, role === 'member' ? styles.roleChipSelected : null, isRTL && styles.rowRTL]}
+            style={[
+              styles.roleCard,
+              role === 'member' ? styles.roleCardSelected : null,
+              isHighContrast && role !== 'member' ? { borderColor: '#111827', borderWidth: 1.5 } : null,
+            ]}
             onPress={() => setRole('member')}
           >
-            <Ionicons
-              name="person-outline"
-              size={18}
-              color={role === 'member' ? theme.colors.surface : theme.colors.primary}
-            />
-            <Text style={[styles.roleChipText, role === 'member' ? styles.roleChipTextSelected : null]}>
-              {t.memberRole}
+            <View style={[styles.roleHeader, isRTL && styles.rowRTL]}>
+              <Ionicons
+                name="person-outline"
+                size={fontSizes.label + 4}
+                color={role === 'member' ? theme.colors.surface : theme.colors.primary}
+              />
+              <Text style={[styles.roleTitle, { fontSize: fontSizes.label }, role === 'member' ? styles.roleTextSelected : null]}>
+                {t.roleMemberShort}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.roleExplanation,
+                { fontSize: fontSizes.small },
+                role === 'member' ? styles.roleExplanationSelected : null,
+                isRTL && styles.textRTL,
+              ]}
+            >
+              {t.roleMemberDesc}
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.roleChip, role === 'admin' ? styles.roleChipSelected : null, isRTL && styles.rowRTL]}
+            style={[
+              styles.roleCard,
+              role === 'admin' ? styles.roleCardSelected : null,
+              isHighContrast && role !== 'admin' ? { borderColor: '#111827', borderWidth: 1.5 } : null,
+            ]}
             onPress={() => setRole('admin')}
           >
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={18}
-              color={role === 'admin' ? theme.colors.surface : theme.colors.primary}
-            />
-            <Text style={[styles.roleChipText, role === 'admin' ? styles.roleChipTextSelected : null]}>
-              {t.adminRole}
+            <View style={[styles.roleHeader, isRTL && styles.rowRTL]}>
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={fontSizes.label + 4}
+                color={role === 'admin' ? theme.colors.surface : theme.colors.primary}
+              />
+              <Text style={[styles.roleTitle, { fontSize: fontSizes.label }, role === 'admin' ? styles.roleTextSelected : null]}>
+                {t.roleAdminShort}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.roleExplanation,
+                { fontSize: fontSizes.small },
+                role === 'admin' ? styles.roleExplanationSelected : null,
+                isRTL && styles.textRTL,
+              ]}
+            >
+              {t.roleAdminDesc}
             </Text>
           </Pressable>
         </View>
 
         {role === 'member' ? (
           <>
-            <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.linkToCareProfile}</Text>
+            <Text style={[styles.fieldLabel, { fontSize: fontSizes.label, color: colors.text }, isRTL && styles.textRTL]}>{t.linkToCareProfile}</Text>
             <View style={[styles.chipRow, isRTL && styles.rowRTL]}>
               {careProfiles.map((cp) => {
                 const isSelected = selectedCareProfileId === cp.id;
@@ -223,13 +258,18 @@ export default function ManageInvitesScreen() {
                 return (
                   <Pressable
                     key={cp.id}
-                    style={[styles.personChip, isSelected ? styles.personChipSelected : null, isRTL && styles.rowRTL]}
+                    style={[
+                      styles.personChip,
+                      isSelected ? styles.personChipSelected : null,
+                      isHighContrast && !isSelected ? { borderColor: '#111827', borderWidth: 1.5 } : null,
+                      isRTL && styles.rowRTL,
+                    ]}
                     onPress={() => setSelectedCareProfileId(cp.id)}
                   >
                     <View style={[styles.chipAvatar, { backgroundColor: cp.color }]}>
-                      <Text style={styles.chipAvatarText}>{initial}</Text>
+                      <Text style={[styles.chipAvatarText, { fontSize: fontSizes.small }]}>{initial}</Text>
                     </View>
-                    <Text style={[styles.chipName, isSelected ? styles.chipNameSelected : null]}>
+                    <Text style={[styles.chipName, { fontSize: fontSizes.label }, isSelected ? styles.chipNameSelected : null]}>
                       {cp.display_name}
                     </Text>
                   </Pressable>
@@ -239,15 +279,19 @@ export default function ManageInvitesScreen() {
           </>
         ) : null}
 
-        <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.expiresAfter}</Text>
+        <Text style={[styles.fieldLabel, { fontSize: fontSizes.label, color: colors.text }, isRTL && styles.textRTL]}>{t.expiresAfter}</Text>
         <View style={[styles.chipRow, isRTL && styles.rowRTL]}>
           {expiryOptions.map((opt) => (
             <Pressable
               key={opt.hours}
-              style={[styles.expiryChip, expiryHours === opt.hours ? styles.expiryChipSelected : null]}
+              style={[
+                styles.expiryChip,
+                expiryHours === opt.hours ? styles.expiryChipSelected : null,
+                isHighContrast && expiryHours !== opt.hours ? { borderColor: '#111827', borderWidth: 1.5 } : null,
+              ]}
               onPress={() => setExpiryHours(opt.hours)}
             >
-              <Text style={[styles.expiryChipText, expiryHours === opt.hours ? styles.expiryChipTextSelected : null]}>
+              <Text style={[styles.expiryChipText, { fontSize: fontSizes.small }, expiryHours === opt.hours ? styles.expiryChipTextSelected : null]}>
                 {opt.label}
               </Text>
             </Pressable>
@@ -256,8 +300,8 @@ export default function ManageInvitesScreen() {
 
         <View style={[styles.switchRow, isRTL && styles.rowRTL]}>
           <View style={styles.switchLabel}>
-            <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.singleUse}</Text>
-            <Text style={[styles.helperText, isRTL && styles.textRTL]}>{t.singleUseHelper}</Text>
+            <Text style={[styles.fieldLabel, { fontSize: fontSizes.label, color: colors.text }, isRTL && styles.textRTL]}>{t.singleUse}</Text>
+            <Text style={[styles.helperText, { fontSize: fontSizes.helper, color: colors.textMuted }, isRTL && styles.textRTL]}>{t.singleUseHelper}</Text>
           </View>
           <Switch
             value={singleUse}
@@ -270,7 +314,7 @@ export default function ManageInvitesScreen() {
         {createError ? (
           <View style={[styles.errorBox, isRTL && styles.rowRTL]}>
             <Ionicons name="alert-circle-outline" size={18} color={theme.colors.error} />
-            <Text style={[styles.errorText, isRTL && styles.textRTL]}>{createError}</Text>
+            <Text style={[styles.errorText, { fontSize: fontSizes.label }, isRTL && styles.textRTL]}>{createError}</Text>
           </View>
         ) : null}
 
@@ -278,32 +322,32 @@ export default function ManageInvitesScreen() {
           <View style={[styles.successBox, isRTL && styles.rowRTL]}>
             <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.primary} />
             <View style={styles.successContent}>
-              <Text style={[styles.successLabel, isRTL && styles.textRTL]}>{t.codeCreated}</Text>
-              <Text style={styles.codeText}>{createdCode}</Text>
+              <Text style={[styles.successLabel, { fontSize: fontSizes.label }, isRTL && styles.textRTL]}>{t.codeCreated}</Text>
+              <Text style={[styles.codeText, { fontSize: fontSizes.title }]}>{createdCode}</Text>
             </View>
           </View>
         ) : null}
 
         <Pressable
-          style={({ pressed }) => [styles.button, pressed ? styles.buttonPressed : null, isRTL && styles.rowRTL]}
+          style={({ pressed }) => [styles.button, buttonStyle, pressed ? styles.buttonPressed : null, isRTL && styles.rowRTL]}
           onPress={handleCreate}
           disabled={isCreating}
         >
-          <Ionicons name="add-circle-outline" size={20} color={theme.colors.surface} />
-          <Text style={styles.buttonText}>{isCreating ? t.saving : t.createCode}</Text>
+          <Ionicons name="add-circle-outline" size={fontSizes.section} color={theme.colors.surface} />
+          <Text style={[styles.buttonText, { fontSize: fontSizes.body }]}>{isCreating ? t.saving : t.createCode}</Text>
         </Pressable>
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.manageInvitesTitle}</Text>
+        <Text style={[styles.sectionTitle, { fontSize: fontSizes.title, color: colors.text }, isRTL && styles.textRTL]}>{t.existingCodes}</Text>
 
         {isLoading ? <ActivityIndicator color={theme.colors.primary} style={styles.loader} /> : null}
         {message ? <Text style={[styles.errorFeedback, isRTL && styles.textRTL]}>{message}</Text> : null}
 
         {!isLoading && invites.length === 0 ? (
-          <View style={styles.emptyCard}>
+          <View style={[styles.emptyCard, cardStyle]}>
             <Ionicons name="ticket-outline" size={32} color={theme.colors.secondary} />
-            <Text style={[styles.emptyText, isRTL && styles.textRTL]}>{t.noInvites}</Text>
+            <Text style={[styles.emptyText, { fontSize: fontSizes.body, color: colors.textMuted }, isRTL && styles.textRTL]}>{t.noInvites}</Text>
           </View>
         ) : null}
 
@@ -311,40 +355,40 @@ export default function ManageInvitesScreen() {
           const expired = isExpired(invite);
           const used = isUsed(invite);
           const statusLabel = used ? t.used : expired ? t.expired : t.active;
-          const statusColor = used || expired ? theme.colors.textMuted : theme.colors.primary;
+          const statusColor = used || expired ? colors.textMuted : theme.colors.primary;
           return (
-            <View key={invite.id} style={[styles.inviteCard, (used || expired) ? styles.inviteCardDim : null]}>
+            <View key={invite.id} style={[styles.inviteCard, cardStyle, (used || expired) ? styles.inviteCardDim : null]}>
               <View style={[styles.inviteTop, isRTL && styles.rowRTL]}>
-                <Text style={styles.inviteCode}>{invite.code}</Text>
+                <Text style={[styles.inviteCode, { fontSize: fontSizes.title, color: colors.text }]}>{invite.code}</Text>
                 <Pressable style={styles.deleteBtn} onPress={() => handleDelete(invite)} hitSlop={8}>
                   <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
                 </Pressable>
               </View>
               <View style={[styles.inviteMeta, isRTL && styles.rowRTL]}>
                 <View style={[styles.metaItem, isRTL && styles.rowRTL]}>
-                  <Ionicons name="shield-outline" size={13} color={theme.colors.textMuted} />
-                  <Text style={styles.metaText}>{invite.role === 'admin' ? t.adminRole : t.memberRole}</Text>
+                  <Ionicons name="shield-outline" size={13} color={colors.textMuted} />
+                  <Text style={[styles.metaText, { fontSize: fontSizes.small, color: colors.textMuted }]} numberOfLines={1}>{invite.role === 'admin' ? t.roleAdminShort : t.roleMemberShort}</Text>
                 </View>
                 {invite.care_profile_display_name ? (
                   <View style={[styles.metaItem, isRTL && styles.rowRTL]}>
-                    <Ionicons name="person-outline" size={13} color={theme.colors.textMuted} />
-                    <Text style={styles.metaText}>{invite.care_profile_display_name}</Text>
+                    <Ionicons name="person-outline" size={13} color={colors.textMuted} />
+                    <Text style={[styles.metaText, { fontSize: fontSizes.small, color: colors.textMuted }]} numberOfLines={1}>{invite.care_profile_display_name}</Text>
                   </View>
                 ) : null}
                 <View style={[styles.metaItem, isRTL && styles.rowRTL]}>
-                  <Ionicons name="time-outline" size={13} color={theme.colors.textMuted} />
-                  <Text style={styles.metaText}>
-                    {new Date(invite.expires_at).toLocaleDateString(isRTL ? 'ar-SA' : 'fr-FR')}
+                  <Ionicons name="time-outline" size={13} color={colors.textMuted} />
+                  <Text style={[styles.metaText, { fontSize: fontSizes.small, color: colors.textMuted }]}>
+                    {formatDateDDMMYYYY(invite.expires_at)}
                   </Text>
                 </View>
                 {invite.single_use ? (
                   <View style={[styles.metaItem, isRTL && styles.rowRTL]}>
-                    <Ionicons name="key-outline" size={13} color={theme.colors.textMuted} />
-                    <Text style={styles.metaText}>{t.singleUse}</Text>
+                    <Ionicons name="key-outline" size={13} color={colors.textMuted} />
+                    <Text style={[styles.metaText, { fontSize: fontSizes.small, color: colors.textMuted }]}>{t.singleUse}</Text>
                   </View>
                 ) : null}
                 <View style={[styles.statusBadge, { borderColor: statusColor }]}>
-                  <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
+                  <Text style={[styles.statusText, { fontSize: fontSizes.small, color: statusColor }]}>{statusLabel}</Text>
                 </View>
               </View>
             </View>
@@ -387,30 +431,41 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     marginBottom: 6,
   },
-  roleChip: {
+  roleCard: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    minHeight: 44,
+    minHeight: 64,
     borderWidth: 1.5,
     borderColor: theme.colors.border,
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.surface,
-    paddingHorizontal: 8,
+    padding: 10,
+    justifyContent: 'center',
   },
-  roleChipSelected: {
+  roleCardSelected: {
     borderColor: theme.colors.primary,
     backgroundColor: theme.colors.primary,
   },
-  roleChipText: {
-    fontSize: 12,
+  roleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  roleTitle: {
+    fontSize: 13,
     fontWeight: '700',
     color: theme.colors.text,
   },
-  roleChipTextSelected: {
+  roleTextSelected: {
     color: theme.colors.surface,
+  },
+  roleExplanation: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    lineHeight: 14,
+  },
+  roleExplanationSelected: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   chipRow: {
     flexDirection: 'row',
@@ -615,6 +670,7 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: theme.typography.small,
     color: theme.colors.textMuted,
+    flexShrink: 1,
   },
   statusBadge: {
     borderWidth: 1,

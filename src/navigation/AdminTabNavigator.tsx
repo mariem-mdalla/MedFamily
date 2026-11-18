@@ -19,6 +19,7 @@ export default function AdminTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
+        headerTitleAlign: 'center',
         headerStyle: {
           backgroundColor: theme.colors.surface,
         },
@@ -39,7 +40,7 @@ export default function AdminTabNavigator() {
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
         },
       }}

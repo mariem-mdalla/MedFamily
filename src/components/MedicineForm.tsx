@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { theme } from '../constants/theme';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { useTranslation } from '../i18n';
 import { CareProfile, MedicationForm, ScheduleRecurrence } from '../types/database';
 
@@ -75,6 +76,7 @@ export default function MedicineForm({
   notificationNote,
 }: MedicineFormProps) {
   const { t, isRTL } = useTranslation();
+  const { fontSizes, colors, buttonStyle, isHighContrast } = useAppTheme();
 
   const [name, setName] = useState(initialValues.name);
   const [form, setForm] = useState<MedicationForm>(initialValues.form);
@@ -242,11 +244,24 @@ export default function MedicineForm({
     }
   }
 
+  const dynInputStyle = [
+    styles.input,
+    { fontSize: fontSizes.body, color: colors.text, borderColor: colors.border },
+  ];
+  const dynLabelStyle = [
+    styles.fieldLabel,
+    { fontSize: fontSizes.label, color: colors.text },
+  ];
+  const dynHelperStyle = [
+    styles.helperText,
+    { fontSize: fontSizes.helper, color: colors.textMuted },
+  ];
+
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]} keyboardShouldPersistTaps="handled">
       {careProfiles.length > 0 ? (
         <View style={styles.whoSection}>
-          <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.whoIsItFor}</Text>
+          <Text style={[dynLabelStyle, isRTL && styles.textRTL]}>{t.whoIsItFor}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.whoRow, isRTL && styles.rowRTL]}>
             {careProfiles.map((cp) => {
               const isSelected = careProfileId === cp.id;
@@ -270,16 +285,16 @@ export default function MedicineForm({
         </View>
       ) : null}
 
-      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.medicineName}</Text>
+      <Text style={[dynLabelStyle, isRTL && styles.textRTL]}>{t.medicineName}</Text>
       <TextInput
-        style={[styles.input, isRTL && styles.inputRTL]}
+        style={[dynInputStyle, isRTL && styles.inputRTL]}
         placeholder={t.medicineNamePlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={name}
         onChangeText={setName}
       />
 
-      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.form}</Text>
+      <Text style={[dynLabelStyle, isRTL && styles.textRTL]}>{t.form}</Text>
       <View style={[styles.formRow, isRTL && styles.rowRTL]}>
         {FORM_OPTIONS.map((option) => {
           const isSelected = form === option.value;
@@ -289,16 +304,17 @@ export default function MedicineForm({
               style={({ pressed }) => [
                 styles.formChip,
                 isSelected ? styles.formChipSelected : null,
+                isHighContrast && !isSelected ? { borderColor: '#111827', borderWidth: 2 } : null,
                 pressed ? styles.formChipPressed : null,
               ]}
               onPress={() => setForm(option.value)}
             >
               <Ionicons
                 name={option.icon}
-                size={22}
+                size={fontSizes.title}
                 color={isSelected ? theme.colors.surface : theme.colors.primary}
               />
-              <Text style={[styles.formChipText, isSelected ? styles.formChipTextSelected : null]}>
+              <Text style={[styles.formChipText, { fontSize: fontSizes.small }, isSelected ? styles.formChipTextSelected : null]}>
                 {getFormLabel(option.value)}
               </Text>
             </Pressable>
@@ -306,21 +322,21 @@ export default function MedicineForm({
         })}
       </View>
 
-      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.doseAmount}</Text>
+      <Text style={[dynLabelStyle, isRTL && styles.textRTL]}>{t.doseAmount}</Text>
       <TextInput
-        style={[styles.input, isRTL && styles.inputRTL]}
+        style={[dynInputStyle, isRTL && styles.inputRTL]}
         placeholder={t.doseAmountPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={doseAmount}
         onChangeText={setDoseAmount}
       />
-      <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+      <Text style={[dynHelperStyle, isRTL && styles.textRTL]}>
         {t.doseAmountHelper}
       </Text>
 
-      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.instructions}</Text>
+      <Text style={[dynLabelStyle, isRTL && styles.textRTL]}>{t.instructions}</Text>
       <TextInput
-        style={[styles.input, styles.multiline, isRTL && styles.inputRTL]}
+        style={[dynInputStyle, styles.multiline, isRTL && styles.inputRTL]}
         placeholder={t.instructionsPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={instructions}
@@ -328,19 +344,19 @@ export default function MedicineForm({
         multiline
       />
 
-      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.reminderTime}</Text>
-      <Pressable style={[styles.timeSelectorButton, isRTL && styles.rowRTL]} onPress={handleOpenTimePicker}>
+      <Text style={[dynLabelStyle, isRTL && styles.textRTL]}>{t.reminderTime}</Text>
+      <Pressable style={[styles.timeSelectorButton, isHighContrast && { borderColor: '#111827', borderWidth: 2 }, isRTL && styles.rowRTL]} onPress={handleOpenTimePicker}>
         <View style={[styles.timeSelectorLeft, isRTL && styles.rowRTL]}>
-          <Ionicons name="alarm-outline" size={24} color={theme.colors.primary} />
-          <Text style={styles.timeSelectorValue}>{timeLocal}</Text>
+          <Ionicons name="alarm-outline" size={fontSizes.title} color={theme.colors.primary} />
+          <Text style={[styles.timeSelectorValue, { fontSize: fontSizes.title, color: colors.text }]}>{timeLocal}</Text>
         </View>
         <View style={[styles.timeSelectorBadge, isRTL && styles.rowRTL]}>
-          <Text style={styles.timeSelectorBadgeText}>{t.edit}</Text>
+          <Text style={[styles.timeSelectorBadgeText, { fontSize: fontSizes.label }]}>{t.edit}</Text>
           <Ionicons name={isRTL ? "chevron-back" : "chevron-forward"} size={16} color={theme.colors.primary} />
         </View>
       </Pressable>
 
-      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>{t.recurrence}</Text>
+      <Text style={[styles.sectionTitle, { fontSize: fontSizes.section, color: colors.text }, isRTL && styles.textRTL]}>{t.recurrence}</Text>
       <View style={[styles.recurrenceRow, isRTL && styles.rowRTL]}>
         {(
           [
@@ -354,6 +370,7 @@ export default function MedicineForm({
             style={({ pressed }) => [
               styles.recurrenceChip,
               recurrence === option.value ? styles.recurrenceChipSelected : null,
+              isHighContrast && recurrence !== option.value ? { borderColor: '#111827', borderWidth: 1.5 } : null,
               pressed ? styles.formChipPressed : null,
             ]}
             onPress={() => setRecurrence(option.value)}
@@ -361,6 +378,7 @@ export default function MedicineForm({
             <Text
               style={[
                 styles.recurrenceChipText,
+                { fontSize: fontSizes.small },
                 recurrence === option.value ? styles.recurrenceChipTextSelected : null,
               ]}
             >
@@ -377,10 +395,14 @@ export default function MedicineForm({
             return (
               <Pressable
                 key={day.value}
-                style={[styles.dayChip, selected ? styles.dayChipSelected : null]}
+                style={[
+                  styles.dayChip,
+                  selected ? styles.dayChipSelected : null,
+                  isHighContrast && !selected ? { borderColor: '#111827', borderWidth: 1.5 } : null,
+                ]}
                 onPress={() => toggleDay(day.value)}
               >
-                <Text style={[styles.dayChipText, selected ? styles.dayChipTextSelected : null]}>
+                <Text style={[styles.dayChipText, { fontSize: fontSizes.small }, selected ? styles.dayChipTextSelected : null]}>
                   {day.label}
                 </Text>
               </Pressable>
@@ -391,9 +413,9 @@ export default function MedicineForm({
 
       {recurrence === 'monthly' ? (
         <View>
-          <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.dayOfMonth}</Text>
+          <Text style={[dynLabelStyle, isRTL && styles.textRTL]}>{t.dayOfMonth}</Text>
           <TextInput
-            style={[styles.input, isRTL && styles.inputRTL]}
+            style={[dynInputStyle, isRTL && styles.inputRTL]}
             placeholder={t.dayOfMonthPlaceholder}
             placeholderTextColor={theme.colors.textMuted}
             value={dayOfMonth}
@@ -403,9 +425,9 @@ export default function MedicineForm({
         </View>
       ) : null}
 
-      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.expiryDate}</Text>
+      <Text style={[dynLabelStyle, isRTL && styles.textRTL]}>{t.expiryDate}</Text>
       <TextInput
-        style={[styles.input, isRTL && styles.inputRTL]}
+        style={[dynInputStyle, isRTL && styles.inputRTL]}
         placeholder={t.expiryPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={expiryDate}
@@ -414,52 +436,52 @@ export default function MedicineForm({
         keyboardType="numbers-and-punctuation"
       />
 
-      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.stockQuantity}</Text>
+      <Text style={[dynLabelStyle, isRTL && styles.textRTL]}>{t.stockQuantity}</Text>
       <TextInput
-        style={[styles.input, isRTL && styles.inputRTL]}
+        style={[dynInputStyle, isRTL && styles.inputRTL]}
         placeholder={t.stockPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={stockQuantity}
         onChangeText={setStockQuantity}
         keyboardType="number-pad"
       />
-      <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+      <Text style={[dynHelperStyle, isRTL && styles.textRTL]}>
         {t.stockQuantityHelper}
       </Text>
 
-      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.lowStockThreshold}</Text>
+      <Text style={[dynLabelStyle, isRTL && styles.textRTL]}>{t.lowStockThreshold}</Text>
       <TextInput
-        style={[styles.input, isRTL && styles.inputRTL]}
+        style={[dynInputStyle, isRTL && styles.inputRTL]}
         placeholder={t.lowStockPlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={lowStockThreshold}
         onChangeText={setLowStockThreshold}
         keyboardType="number-pad"
       />
-      <Text style={[styles.helperText, isRTL && styles.textRTL]}>
+      <Text style={[dynHelperStyle, isRTL && styles.textRTL]}>
         {t.lowStockThresholdHelper}
       </Text>
 
       {errorMessage ? (
         <View style={[styles.errorBox, isRTL && styles.rowRTL]}>
           <Ionicons name="alert-circle-outline" size={18} color={theme.colors.error} />
-          <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errorMessage}</Text>
+          <Text style={[styles.errorText, { fontSize: fontSizes.label }, isRTL && styles.textRTL]}>{errorMessage}</Text>
         </View>
       ) : null}
 
       {notificationNote ? (
         <View style={[styles.noticeBox, isRTL && styles.rowRTL]}>
           <Ionicons name="notifications-off-outline" size={18} color={theme.colors.textMuted} />
-          <Text style={[styles.noticeText, isRTL && styles.textRTL]}>{notificationNote}</Text>
+          <Text style={[styles.noticeText, { fontSize: fontSizes.label }, isRTL && styles.textRTL]}>{notificationNote}</Text>
         </View>
       ) : null}
 
       <Pressable
-        style={({ pressed }) => [styles.button, pressed ? styles.buttonPressed : null]}
+        style={({ pressed }) => [styles.button, buttonStyle, pressed ? styles.buttonPressed : null]}
         onPress={handleSubmit}
         disabled={isSubmitting}
       >
-        <Text style={styles.buttonText}>{isSubmitting ? t.saving : submitLabel}</Text>
+        <Text style={[styles.buttonText, { fontSize: fontSizes.body }]}>{isSubmitting ? t.saving : submitLabel}</Text>
       </Pressable>
 
       <Modal visible={isTimePickerOpen} transparent animationType="fade">
@@ -729,6 +751,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   formChipPressed: {
     opacity: 0.8,
@@ -741,6 +764,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: theme.colors.text,
+    textAlign: 'center',
   },
   formChipTextSelected: {
     color: theme.colors.surface,

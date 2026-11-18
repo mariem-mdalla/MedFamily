@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { useTranslation } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
@@ -21,6 +22,7 @@ import { CareProfile } from '../types/database';
 export default function PeopleScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile } = useAuth();
+  const { fontSizes, colors, cardStyle, buttonStyle, isHighContrast, isLarge } = useAppTheme();
   const { t, isRTL } = useTranslation();
   const [people, setPeople] = useState<CareProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,16 +99,15 @@ export default function PeopleScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={[styles.title, isRTL && styles.textRTL]}>{t.people}</Text>
-      <Text style={[styles.subtitle, isRTL && styles.textRTL]}>{t.peopleSubtitle}</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.subtitle, { fontSize: fontSizes.body, color: colors.textMuted }, isRTL && styles.textRTL]}>{t.peopleSubtitle}</Text>
 
       <Pressable
-        style={[styles.addButton, isRTL && styles.rowRTL]}
+        style={[styles.addButton, buttonStyle, isRTL && styles.rowRTL]}
         onPress={() => navigation.navigate('AddPerson')}
       >
-        <Ionicons name="add" size={20} color={theme.colors.surface} />
-        <Text style={styles.addButtonText}>{t.addPerson}</Text>
+        <Ionicons name="add" size={fontSizes.section} color={theme.colors.surface} />
+        <Text style={[styles.addButtonText, { fontSize: fontSizes.body }]}>{t.addPerson}</Text>
       </Pressable>
 
       {isLoading ? <ActivityIndicator style={styles.loader} color={theme.colors.primary} /> : null}
@@ -120,8 +121,8 @@ export default function PeopleScreen() {
           !isLoading ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="people-outline" size={40} color={theme.colors.secondary} />
-              <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t.noPeople}</Text>
-              <Text style={[styles.emptyText, isRTL && styles.textRTL]}>
+              <Text style={[styles.emptyTitle, { fontSize: fontSizes.section, color: colors.text }, isRTL && styles.textRTL]}>{t.noPeople}</Text>
+              <Text style={[styles.emptyText, { fontSize: fontSizes.body, color: colors.textMuted }, isRTL && styles.textRTL]}>
                 {t.noPeopleSubtitle}
               </Text>
             </View>
@@ -131,22 +132,22 @@ export default function PeopleScreen() {
           const initial = item.display_name.charAt(0).toUpperCase();
           const isLinked = item.linked_user_id !== null;
           return (
-            <View style={[styles.card, isRTL && styles.rowRTL]}>
+            <View style={[styles.card, cardStyle, isRTL && styles.rowRTL]}>
               <View style={[styles.cardLeft, isRTL && styles.rowRTL]}>
                 <View style={[styles.avatar, { backgroundColor: item.color }]}>
-                  <Text style={styles.avatarText}>{initial}</Text>
+                  <Text style={[styles.avatarText, { fontSize: isLarge ? 22 : 18 }]}>{initial}</Text>
                 </View>
                 <View style={styles.cardInfo}>
-                  <Text style={[styles.cardName, isRTL && styles.textRTL]}>{item.display_name}</Text>
-                  {item.label ? <Text style={[styles.cardLabel, isRTL && styles.textRTL]}>{item.label}</Text> : null}
+                  <Text style={[styles.cardName, { fontSize: fontSizes.section, color: colors.text }, isRTL && styles.textRTL]}>{item.display_name}</Text>
+                  {item.label ? <Text style={[styles.cardLabel, { fontSize: fontSizes.body, color: colors.textMuted }, isRTL && styles.textRTL]}>{item.label}</Text> : null}
                   {isLinked ? (
-                    <View style={[styles.linkedBadge, isRTL && styles.rowRTL]}>
-                      <Ionicons name="person-circle-outline" size={12} color={theme.colors.primary} />
-                      <Text style={styles.linkedBadgeText}>{t.linkedAccount}</Text>
+                    <View style={[styles.linkedBadge, isHighContrast && { borderColor: '#111827', borderWidth: 1.5 }, isRTL && styles.rowRTL]}>
+                      <Ionicons name="person-circle-outline" size={fontSizes.small} color={theme.colors.primary} />
+                      <Text style={[styles.linkedBadgeText, { fontSize: fontSizes.small }]}>{t.linkedAccount}</Text>
                     </View>
                   ) : null}
                   {isLinked ? (
-                    <Text style={[styles.linkedExplanation, isRTL && styles.textRTL]}>
+                    <Text style={[styles.linkedExplanation, { fontSize: fontSizes.small, color: colors.textMuted }, isRTL && styles.textRTL]}>
                       {t.cannotDeleteLinked}
                     </Text>
                   ) : null}

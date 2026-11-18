@@ -37,6 +37,7 @@ export default function RootNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
+        headerTitleAlign: 'center',
         headerStyle: {
           backgroundColor: theme.colors.surface,
         },

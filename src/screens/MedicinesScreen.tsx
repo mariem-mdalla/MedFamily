@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { useTranslation } from '../i18n';
+import { formatDateDDMMYYYY } from '../lib/dateUtils';
 import { cancelScheduledRemindersForIds } from '../lib/medicationReminders';
 import { rebuildAllReminders } from '../lib/scheduleReminders';
 import { supabase } from '../lib/supabase';
@@ -23,6 +25,7 @@ import { MedicationWithSchedules } from '../types/database';
 export default function MedicinesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile } = useAuth();
+  const { fontSizes, colors, cardStyle, buttonStyle, isHighContrast, isLarge } = useAppTheme();
   const { t, isRTL, formatSchedule } = useTranslation();
   const [medicines, setMedicines] = useState<MedicationWithSchedules[]>([]);
   const [careProfilesMap, setCareProfilesMap] = useState<Map<string, { name: string; color: string }>>(
@@ -122,17 +125,16 @@ export default function MedicinesScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={[styles.title, isRTL && styles.textRTL]}>{t.medicines}</Text>
-      <Text style={[styles.message, isRTL && styles.textRTL]}>{t.medicinesSubtitle}</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.message, { fontSize: fontSizes.body, color: colors.textMuted }, isRTL && styles.textRTL]}>{t.medicinesSubtitle}</Text>
 
       {profile?.role === 'admin' ? (
         <Pressable
-          style={[styles.button, isRTL && styles.rowRTL]}
+          style={[styles.button, buttonStyle, isRTL && styles.rowRTL]}
           onPress={() => navigation.navigate('AddMedicine')}
         >
-          <Ionicons name="add" size={20} color={theme.colors.surface} />
-          <Text style={styles.buttonText}>{t.addMedicine}</Text>
+          <Ionicons name="add" size={fontSizes.section} color={theme.colors.surface} />
+          <Text style={[styles.buttonText, { fontSize: fontSizes.body }]}>{t.addMedicine}</Text>
         </Pressable>
       ) : null}
 
@@ -147,8 +149,8 @@ export default function MedicinesScreen() {
           !isLoading ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="medkit-outline" size={40} color={theme.colors.secondary} />
-              <Text style={[styles.emptyTitle, isRTL && styles.textRTL]}>{t.noMedicinesSaved}</Text>
-              <Text style={[styles.emptyText, isRTL && styles.textRTL]}>{t.noMedicinesSubtitle}</Text>
+              <Text style={[styles.emptyTitle, { fontSize: fontSizes.section, color: colors.text }, isRTL && styles.textRTL]}>{t.noMedicinesSaved}</Text>
+              <Text style={[styles.emptyText, { fontSize: fontSizes.body, color: colors.textMuted }, isRTL && styles.textRTL]}>{t.noMedicinesSubtitle}</Text>
             </View>
           ) : undefined
         }
@@ -160,9 +162,9 @@ export default function MedicinesScreen() {
           const initial = personInfo.name.charAt(0).toUpperCase();
 
           return (
-            <View style={styles.card}>
+            <View style={[styles.card, cardStyle]}>
               <View style={[styles.cardHeader, isRTL && styles.rowRTL]}>
-                <Text style={[styles.cardTitle, isRTL && styles.textRTL]}>{item.name}</Text>
+                <Text style={[styles.cardTitle, { fontSize: fontSizes.section, color: colors.text }, isRTL && styles.textRTL]}>{item.name}</Text>
                 {profile?.role === 'admin' ? (
                   <View style={[styles.cardActions, isRTL && styles.rowRTL]}>
                     <Pressable
@@ -180,30 +182,30 @@ export default function MedicinesScreen() {
               </View>
 
               <View style={[styles.personRow, isRTL && styles.rowRTL]}>
-                <View style={[styles.personAvatar, { backgroundColor: personInfo.color }]}>
-                  <Text style={styles.personAvatarText}>{initial}</Text>
+                <View style={[styles.personAvatar, isLarge && { width: 26, height: 26, borderRadius: 13 }, { backgroundColor: personInfo.color }]}>
+                  <Text style={[styles.personAvatarText, { fontSize: isLarge ? 13 : 11 }]}>{initial}</Text>
                 </View>
-                <Text style={[styles.personText, isRTL && styles.textRTL]}>{t.forPerson} {personInfo.name}</Text>
+                <Text style={[styles.personText, { fontSize: fontSizes.body, color: colors.text }, isRTL && styles.textRTL]}>{t.forPerson} {personInfo.name}</Text>
               </View>
 
               {item.instructions ? (
-                <Text style={[styles.cardText, isRTL && styles.textRTL]}>{item.instructions}</Text>
+                <Text style={[styles.cardText, { fontSize: fontSizes.body, color: colors.textMuted }, isRTL && styles.textRTL]}>{item.instructions}</Text>
               ) : null}
 
               <View style={[styles.metaRow, isRTL && styles.rowRTL]}>
                 {item.expiry_date ? (
-                  <View style={[styles.metaBadge, isRTL && styles.rowRTL]}>
-                    <Ionicons name="calendar-outline" size={12} color={theme.colors.textMuted} />
-                    <Text style={styles.expiryText}>{t.exp}: {item.expiry_date}</Text>
+                  <View style={[styles.metaBadge, isHighContrast && { borderColor: '#111827', borderWidth: 1.5 }, isRTL && styles.rowRTL]}>
+                    <Ionicons name="calendar-outline" size={fontSizes.small} color={colors.textMuted} />
+                    <Text style={[styles.expiryText, { fontSize: fontSizes.small, color: colors.textMuted }]}>{t.exp}: {formatDateDDMMYYYY(item.expiry_date)}</Text>
                   </View>
                 ) : null}
               </View>
 
               <View style={[styles.schedulesContainer, isRTL && styles.rowRTL]}>
                 {item.schedules.map((schedule) => (
-                  <View key={schedule.id} style={[styles.scheduleBadge, isRTL && styles.rowRTL]}>
+                  <View key={schedule.id} style={[styles.scheduleBadge, isHighContrast && { borderColor: '#111827', borderWidth: 1.5 }, isRTL && styles.rowRTL]}>
                     <Ionicons name="time-outline" size={13} color={theme.colors.primary} />
-                    <Text style={styles.scheduleText}>
+                    <Text style={[styles.scheduleText, { fontSize: fontSizes.body }]}>
                       {schedule.time_local} ·{' '}
                       {formatSchedule(schedule.recurrence, schedule.weekdays, schedule.day_of_month)}
                     </Text>
@@ -373,11 +375,14 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.full,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   scheduleText: {
     fontSize: theme.typography.small,
     color: theme.colors.primary,
     fontWeight: '600',
+    flexShrink: 1,
   },
   textRTL: {
     textAlign: 'right',

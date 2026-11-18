@@ -49,7 +49,7 @@ export function getTheme(largeText = false, highContrast = false) {
       primary: highContrast ? '#1B4332' : theme.colors.primary,
       primaryDark: highContrast ? '#081C15' : theme.colors.primaryDark,
       secondary: highContrast ? '#2D6A4F' : theme.colors.secondary,
-      background: highContrast ? '#FFFFFF' : theme.colors.background,
+      background: theme.colors.background,
       surface: '#FFFFFF',
       text: highContrast ? '#000000' : theme.colors.text,
       textMuted: highContrast ? '#1F2937' : theme.colors.textMuted,

@@ -4,56 +4,55 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { useTranslation } from '../i18n';
+import { formatDateDDMMYYYY } from '../lib/dateUtils';
 import { RootStackParamList } from '../navigation/types';
 
 export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profile, session } = useAuth();
+  const { fontSizes, colors, cardStyle, buttonStyle, isHighContrast } = useAppTheme();
   const { t, isRTL, lang } = useTranslation();
 
-  const todayFormatted = new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'fr-FR', {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-  });
+  const todayFormatted = formatDateDDMMYYYY(new Date());
 
   const userName = profile?.display_name ?? session?.user.email ?? '';
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerCard}>
-        <Text style={[styles.dateText, isRTL && styles.textRTL]}>{todayFormatted}</Text>
-        <Text style={[styles.greetingText, isRTL && styles.textRTL]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.headerCard, cardStyle]}>
+        <Text style={[styles.dateText, { fontSize: fontSizes.small, color: colors.textMuted }, isRTL && styles.textRTL]}>{todayFormatted}</Text>
+        <Text style={[styles.greetingText, { fontSize: fontSizes.title, color: colors.text }, isRTL && styles.textRTL]}>
           {t.hi}, {userName}
         </Text>
-        <View style={[styles.roleBadge, isRTL && styles.roleBadgeRTL]}>
-          <Text style={styles.roleText}>
+        <View style={[styles.roleBadge, isHighContrast && { borderColor: '#111827', borderWidth: 1.5 }, isRTL && styles.roleBadgeRTL]}>
+          <Text style={[styles.roleText, { fontSize: fontSizes.small }]}>
             {profile?.role === 'admin' ? t.householdAdmin : t.familyMember}
           </Text>
         </View>
       </View>
 
-      <View style={styles.overviewCard}>
+      <View style={[styles.overviewCard, cardStyle]}>
         <View style={[styles.overviewHeading, isRTL && styles.rowRTL]}>
           <View style={[styles.overviewIcon, isRTL && styles.overviewIconRTL]}>
             <Ionicons name="medkit-outline" size={24} color={theme.colors.primary} />
           </View>
-          <Text style={[styles.cardTitle, isRTL && styles.textRTL]}>
+          <Text style={[styles.cardTitle, { fontSize: fontSizes.section, color: colors.text }, isRTL && styles.textRTL]}>
             {profile?.role === 'admin' ? t.manageMedicinesCardTitle : t.yourScheduleCardTitle}
           </Text>
         </View>
-        <Text style={[styles.cardDescription, isRTL && styles.textRTL]}>
+        <Text style={[styles.cardDescription, { fontSize: fontSizes.body, color: colors.textMuted }, isRTL && styles.textRTL]}>
           {profile?.role === 'admin'
             ? t.manageMedicinesCardDesc
             : t.yourScheduleCardDesc}
         </Text>
         {profile?.role === 'admin' ? (
           <Pressable
-            style={styles.actionButton}
+            style={[styles.actionButton, buttonStyle]}
             onPress={() => navigation.navigate('AddMedicine')}
           >
-            <Text style={styles.actionButtonText}>{t.addAMedicine}</Text>
+            <Text style={[styles.actionButtonText, { fontSize: fontSizes.body }]}>{t.addAMedicine}</Text>
           </Pressable>
         ) : null}
       </View>

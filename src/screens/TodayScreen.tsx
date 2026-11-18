@@ -15,6 +15,7 @@ import {
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
+import { formatDateDDMMYYYY } from '../lib/dateUtils';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
 import { MedicationWithSchedules } from '../types/database';
@@ -84,11 +85,7 @@ export default function TodayScreen() {
   const currentHour = new Date().getHours();
   const greeting =
     currentHour < 12 ? t.goodMorning : currentHour < 18 ? t.goodAfternoon : t.goodEvening;
-  const todayFormatted = new Date().toLocaleDateString(isRTL ? 'ar-SA' : 'fr-FR', {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-  });
+  const todayFormatted = formatDateDDMMYYYY(new Date());
 
   async function loadTodayDoses(silent = false) {
     if (!profile) {
@@ -420,8 +417,8 @@ export default function TodayScreen() {
               <Text style={[styles.progressTitle, isLarge && { fontSize: 20 }, isHighContrast && { color: '#000000' }, isRTL && styles.textRTL]}>{t.dailyProgress}</Text>
               <Text style={[styles.progressValue, isLarge && { fontSize: 18 }, isHighContrast && { color: '#000000' }, isRTL && styles.textRTL]}>
                 {isRTL
-                  ? `${t.ofRecorded} ${totalCount} ${recordedCount}`
-                  : `${recordedCount} ${t.ofRecorded} ${totalCount}`}
+                  ? `${t.ofRecordedCount ? t.ofRecordedCount(recordedCount) : t.ofRecorded} ${totalCount} ${recordedCount}`
+                  : `${recordedCount} ${t.ofRecordedCount ? t.ofRecordedCount(recordedCount) : t.ofRecorded} ${totalCount}`}
               </Text>
             </View>
             <View style={styles.progressBarTrack}>
@@ -484,8 +481,8 @@ export default function TodayScreen() {
             </Text>
 
             <View style={[styles.personRow, isRTL && styles.rowRTL]}>
-              <View style={[styles.personAvatar, { backgroundColor: item.careProfileColor }]}>
-                <Text style={[styles.personAvatarText, isLarge && { fontSize: 16 }]}>
+              <View style={[styles.personAvatar, isLarge && { width: 26, height: 26, borderRadius: 13 }, { backgroundColor: item.careProfileColor }]}>
+                <Text style={[styles.personAvatarText, { fontSize: isLarge ? 13 : 11 }]}>
                   {item.careProfileName.charAt(0).toUpperCase()}
                 </Text>
               </View>
@@ -503,9 +500,9 @@ export default function TodayScreen() {
               </View>
             ) : null}
 
-            <View style={[styles.actionButtonsRow, isRTL && styles.rowRTL]}>
+            <View style={styles.actionButtonsContainer}>
               {!isDone ? (
-                <>
+                <View style={[styles.actionButtonsRow, isRTL && styles.rowRTL]}>
                   <Pressable
                     style={[styles.actionBtn, styles.takenBtn, isLarge && { minHeight: 52 }, isRTL && styles.rowRTL]}
                     onPress={() => handleRecordDose(item, 'taken')}
@@ -535,13 +532,12 @@ export default function TodayScreen() {
                     <Ionicons name="play-skip-forward-outline" size={isLarge ? 20 : 16} color={theme.colors.textMuted} />
                     <Text style={[styles.skipBtnText, { fontSize: dynActionBtnTextSize }]}>{t.skip}</Text>
                   </Pressable>
-                </>
+                </View>
               ) : null}
 
               <Pressable
                 style={[
-                  styles.actionBtn,
-                  styles.hearBtn,
+                  styles.hearBtnFull,
                   isLarge && { minHeight: 52 },
                   isHighContrast && { borderColor: '#1B4332', borderWidth: 2 },
                   isSpeaking ? styles.hearBtnActive : null,
@@ -621,6 +617,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
     marginBottom: theme.spacing.sm,
   },
   progressTitle: {
@@ -728,6 +726,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
     marginBottom: theme.spacing.xs,
   },
   timeBadge: {
@@ -740,6 +740,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.full,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    flexShrink: 0,
   },
   timeBadgeText: {
     fontSize: theme.typography.label,
@@ -790,10 +791,13 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     lineHeight: 18,
   },
+  actionButtonsContainer: {
+    marginTop: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
   actionButtonsRow: {
     flexDirection: 'row',
     gap: theme.spacing.sm,
-    marginTop: theme.spacing.md,
   },
   actionBtn: {
     flex: 1,
@@ -803,7 +807,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
   },
   takenBtn: {
     backgroundColor: theme.colors.primary,
@@ -812,6 +817,8 @@ const styles = StyleSheet.create({
     color: theme.colors.surface,
     fontSize: theme.typography.label,
     fontWeight: '800',
+    textAlign: 'center',
+    flexShrink: 1,
   },
   skipBtn: {
     backgroundColor: theme.colors.surface,
@@ -822,11 +829,21 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     fontSize: theme.typography.label,
     fontWeight: '700',
+    textAlign: 'center',
+    flexShrink: 1,
   },
-  hearBtn: {
+  hearBtnFull: {
+    width: '100%',
+    minHeight: theme.touchTarget.minHeight,
+    borderRadius: theme.radius.md,
     backgroundColor: theme.colors.surface,
     borderWidth: 1.5,
     borderColor: theme.colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
   },
   hearBtnActive: {
     backgroundColor: theme.colors.primary,
@@ -847,6 +864,13 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: theme.radius.full,
     borderWidth: 1,
+    maxWidth: '100%',
+    flexShrink: 1,
+  },
+  badgeText: {
+    fontSize: theme.typography.small,
+    fontWeight: '700',
+    flexShrink: 1,
   },
   badgeRecorded: {
     backgroundColor: '#EDF5F2',
@@ -863,10 +887,6 @@ const styles = StyleSheet.create({
   badgeUpcoming: {
     backgroundColor: '#EEF4F8',
     borderColor: theme.colors.status.upcoming,
-  },
-  badgeText: {
-    fontSize: theme.typography.small,
-    fontWeight: '700',
   },
   textRTL: {
     textAlign: 'right',

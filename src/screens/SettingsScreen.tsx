@@ -167,16 +167,8 @@ export default function SettingsScreen() {
 
     await refreshProfile();
 
-    const shouldBeRTL = nextLang === 'ar';
-    if (I18nManager.isRTL !== shouldBeRTL) {
-      I18nManager.allowRTL(shouldBeRTL);
-      I18nManager.forceRTL(shouldBeRTL);
-      Alert.alert(
-        t.restartRequiredTitle,
-        t.restartRequiredMessage,
-        [{ text: t.ok }],
-      );
-    }
+    I18nManager.allowRTL(false);
+    I18nManager.forceRTL(false);
 
     setStatusMessage(t.languageSaved);
   }
@@ -205,10 +197,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        highContrast ? { backgroundColor: '#F0F2F5' } : null,
-      ]}
+      contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
       <View style={[styles.card, dynCardStyle]}>
@@ -249,9 +238,18 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <View style={[styles.row, isRTL && styles.rowRTL]}>
-          <Text style={[styles.label, { fontSize: dynTextSize, color: dynLabelColor }]}>{t.email}</Text>
-          <Text style={[styles.value, { fontSize: dynTextSize, color: dynTextColor }]}>
+        <View style={styles.emailBlock}>
+          <Text style={[styles.label, { fontSize: dynTextSize, color: dynLabelColor }, isRTL && styles.textRTL]}>
+            {t.email}
+          </Text>
+          <Text
+            style={[
+              styles.emailFullValue,
+              { fontSize: dynTextSize, color: dynTextColor },
+              isRTL && styles.textRTL,
+            ]}
+            selectable
+          >
             {session?.user.email ?? '—'}
           </Text>
         </View>
@@ -585,6 +583,17 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
   value: {
+    fontSize: theme.typography.label,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  emailBlock: {
+    paddingVertical: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.background,
+  },
+  emailFullValue: {
+    marginTop: 4,
     fontSize: theme.typography.label,
     fontWeight: '600',
     color: theme.colors.text,

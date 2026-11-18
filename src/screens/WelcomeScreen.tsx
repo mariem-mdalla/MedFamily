@@ -19,6 +19,7 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             style={[styles.langBtn, lang === 'fr' && styles.langBtnActive]}
             onPress={() => {
               setGuestLanguage('fr');
+              I18nManager.allowRTL(false);
               I18nManager.forceRTL(false);
             }}
           >
@@ -28,7 +29,8 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
             style={[styles.langBtn, lang === 'ar' && styles.langBtnActive]}
             onPress={() => {
               setGuestLanguage('ar');
-              I18nManager.forceRTL(true);
+              I18nManager.allowRTL(false);
+              I18nManager.forceRTL(false);
             }}
           >
             <Text style={[styles.langText, lang === 'ar' && styles.langTextActive]}>العربية</Text>

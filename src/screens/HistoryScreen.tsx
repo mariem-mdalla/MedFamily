@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { useTranslation } from '../i18n';
+import { formatDateDDMMYYYY, formatTimeHHMM } from '../lib/dateUtils';
 import { supabase } from '../lib/supabase';
 import { CareProfile, DoseLog } from '../types/database';
 
@@ -20,6 +22,7 @@ type StatusFilter = 'all' | 'taken' | 'skipped';
 
 export default function HistoryScreen() {
   const { profile } = useAuth();
+  const { fontSizes, colors, cardStyle, isHighContrast, isLarge } = useAppTheme();
   const { t, isRTL } = useTranslation();
   const [logs, setLogs] = useState<DoseLog[]>([]);
   const [careProfiles, setCareProfiles] = useState<CareProfile[]>([]);
@@ -111,9 +114,8 @@ export default function HistoryScreen() {
   const isAdmin = profile?.role === 'admin';
 
   return (
-    <View style={styles.container}>
-      <Text style={[styles.title, isRTL && styles.textRTL]}>{t.doseHistory}</Text>
-      <Text style={[styles.subtitle, isRTL && styles.textRTL]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.subtitle, { fontSize: fontSizes.body, color: colors.textMuted }, isRTL && styles.textRTL]}>
         {isAdmin ? t.historySubtitleAdmin : t.historySubtitleMember}
       </Text>
 
@@ -130,10 +132,14 @@ export default function HistoryScreen() {
             return (
               <Pressable
                 key={chip.id}
-                style={[styles.statusChip, isSelected ? styles.statusChipSelected : null]}
+                style={[
+                  styles.statusChip,
+                  isSelected ? styles.statusChipSelected : null,
+                  isHighContrast && !isSelected ? { borderColor: '#111827', borderWidth: 1.5 } : null,
+                ]}
                 onPress={() => setStatusFilter(chip.id)}
               >
-                <Text style={[styles.statusChipText, isSelected ? styles.statusChipTextSelected : null]}>
+                <Text style={[styles.statusChipText, { fontSize: fontSizes.label }, isSelected ? styles.statusChipTextSelected : null]}>
                   {chip.label}
                 </Text>
               </Pressable>
@@ -218,20 +224,17 @@ export default function HistoryScreen() {
           const isTaken = item.status === 'taken';
 
           const formattedTime = item.recorded_at
-            ? new Date(item.recorded_at).toLocaleTimeString(isRTL ? 'ar-SA' : 'fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })
+            ? formatTimeHHMM(item.recorded_at)
             : null;
 
           return (
-            <View style={styles.card}>
+            <View style={[styles.card, cardStyle]}>
               <View style={[styles.cardTopRow, isRTL && styles.rowRTL]}>
-                <View style={[styles.dateBadge, isRTL && styles.rowRTL]}>
-                  <Ionicons name="calendar-outline" size={13} color={theme.colors.textMuted} />
-                  <Text style={styles.dateBadgeText}>{item.occurrence_date}</Text>
+                <View style={[styles.dateBadge, isHighContrast && { borderColor: '#111827', borderWidth: 1.5 }, isRTL && styles.rowRTL]}>
+                  <Ionicons name="calendar-outline" size={fontSizes.small} color={colors.textMuted} />
+                  <Text style={[styles.dateBadgeText, { fontSize: fontSizes.small, color: colors.textMuted }]}>{formatDateDDMMYYYY(item.occurrence_date)}</Text>
                   <Text style={styles.timeBullet}>·</Text>
-                  <Text style={styles.dateBadgeText}>{item.time_local}</Text>
+                  <Text style={[styles.dateBadgeText, { fontSize: fontSizes.small, color: colors.textMuted }]}>{formatTimeHHMM(item.time_local)}</Text>
                 </View>
 
                 <View
@@ -243,13 +246,13 @@ export default function HistoryScreen() {
                 >
                   <Ionicons
                     name={isTaken ? 'checkmark-circle' : 'play-skip-forward-circle'}
-                    size={15}
+                    size={fontSizes.label}
                     color={isTaken ? theme.colors.status.taken : theme.colors.status.skipped}
                   />
                   <Text
                     style={[
                       styles.statusBadgeText,
-                      { color: isTaken ? theme.colors.status.taken : theme.colors.status.skipped },
+                      { fontSize: fontSizes.small, color: isTaken ? theme.colors.status.taken : theme.colors.status.skipped },
                     ]}
                   >
                     {isTaken ? t.taken : t.skipped}
@@ -257,24 +260,24 @@ export default function HistoryScreen() {
                 </View>
               </View>
 
-              <Text style={[styles.medicineTitle, isRTL && styles.textRTL]}>{item.medicine_name}</Text>
+              <Text style={[styles.medicineTitle, { fontSize: fontSizes.section, color: colors.text }, isRTL && styles.textRTL]}>{item.medicine_name}</Text>
 
               <View style={[styles.personRow, isRTL && styles.rowRTL]}>
-                <View style={[styles.avatar, { backgroundColor: personInfo.color }]}>
-                  <Text style={styles.avatarText}>{initial}</Text>
+                <View style={[styles.avatar, isLarge && { width: 26, height: 26, borderRadius: 13 }, { backgroundColor: personInfo.color }]}>
+                  <Text style={[styles.avatarText, { fontSize: isLarge ? 13 : 11 }]}>{initial}</Text>
                 </View>
-                <Text style={[styles.personText, isRTL && styles.textRTL]}>{t.forPerson} {personInfo.name}</Text>
+                <Text style={[styles.personText, { fontSize: fontSizes.body, color: colors.text }, isRTL && styles.textRTL]}>{t.forPerson} {personInfo.name}</Text>
               </View>
 
               {item.instructions ? (
-                <View style={[styles.instructionsBox, isRTL && styles.rowRTL]}>
-                  <Ionicons name="document-text-outline" size={13} color={theme.colors.textMuted} />
-                  <Text style={[styles.instructionsText, isRTL && styles.textRTL]}>{item.instructions}</Text>
+                <View style={[styles.instructionsBox, isHighContrast && { borderColor: '#111827', borderWidth: 1.5 }, isRTL && styles.rowRTL]}>
+                  <Ionicons name="document-text-outline" size={fontSizes.small} color={colors.textMuted} />
+                  <Text style={[styles.instructionsText, { fontSize: fontSizes.body, color: colors.textMuted }, isRTL && styles.textRTL]}>{item.instructions}</Text>
                 </View>
               ) : null}
 
               {formattedTime ? (
-                <Text style={[styles.recordedAtText, isRTL && styles.textRTL]}>
+                <Text style={[styles.recordedAtText, { fontSize: fontSizes.small, color: colors.textMuted }, isRTL && styles.textRTL]}>
                   {t.recordedAt}: {formattedTime}
                 </Text>
               ) : null}
@@ -416,6 +419,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
     marginBottom: theme.spacing.xs,
   },
   dateBadge: {

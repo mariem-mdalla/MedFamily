@@ -17,6 +17,7 @@ export default function MemberTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
+        headerTitleAlign: 'center',
         headerStyle: {
           backgroundColor: theme.colors.surface,
         },

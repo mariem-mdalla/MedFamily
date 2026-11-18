@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useAppTheme } from '../hooks/useAppTheme';
 import { useTranslation } from '../i18n';
 import { supabase } from '../lib/supabase';
 import { RootStackParamList } from '../navigation/types';
@@ -32,6 +33,7 @@ const COLOR_OPTIONS = [
 
 export default function AddPersonScreen({ navigation }: AddPersonScreenProps) {
   const { profile } = useAuth();
+  const { fontSizes, colors, cardStyle, buttonStyle, isHighContrast } = useAppTheme();
   const { t, isRTL } = useTranslation();
   const [displayName, setDisplayName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
@@ -75,17 +77,17 @@ export default function AddPersonScreen({ navigation }: AddPersonScreenProps) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={[styles.previewRow, isRTL && styles.rowRTL]}>
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]} keyboardShouldPersistTaps="handled">
+      <View style={[styles.previewRow, cardStyle, isRTL && styles.rowRTL]}>
         <View style={[styles.previewAvatar, { backgroundColor: selectedColor }]}>
-          <Text style={styles.previewInitial}>{initial}</Text>
+          <Text style={[styles.previewInitial, { fontSize: fontSizes.title }]}>{initial}</Text>
         </View>
-        <Text style={[styles.previewName, isRTL && styles.textRTL]}>{displayName.trim() || t.preview}</Text>
+        <Text style={[styles.previewName, { fontSize: fontSizes.section, color: colors.text }, isRTL && styles.textRTL]}>{displayName.trim() || t.preview}</Text>
       </View>
 
-      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.personName}</Text>
+      <Text style={[styles.fieldLabel, { fontSize: fontSizes.label, color: colors.text }, isRTL && styles.textRTL]}>{t.personName}</Text>
       <TextInput
-        style={[styles.input, isRTL && styles.inputRTL]}
+        style={[styles.input, { fontSize: fontSizes.body, color: colors.text, borderColor: colors.border }, isRTL && styles.inputRTL]}
         placeholder={t.personNamePlaceholder}
         placeholderTextColor={theme.colors.textMuted}
         value={displayName}
@@ -93,7 +95,7 @@ export default function AddPersonScreen({ navigation }: AddPersonScreenProps) {
         autoFocus
       />
 
-      <Text style={[styles.fieldLabel, isRTL && styles.textRTL]}>{t.color}</Text>
+      <Text style={[styles.fieldLabel, { fontSize: fontSizes.label, color: colors.text }, isRTL && styles.textRTL]}>{t.color}</Text>
       <View style={[styles.colorGrid, isRTL && styles.rowRTL]}>
         {COLOR_OPTIONS.map((color) => (
           <Pressable
@@ -111,16 +113,16 @@ export default function AddPersonScreen({ navigation }: AddPersonScreenProps) {
       {errorMessage ? (
         <View style={[styles.errorBox, isRTL && styles.rowRTL]}>
           <Ionicons name="alert-circle-outline" size={18} color={theme.colors.error} />
-          <Text style={[styles.errorText, isRTL && styles.textRTL]}>{errorMessage}</Text>
+          <Text style={[styles.errorText, { fontSize: fontSizes.label }, isRTL && styles.textRTL]}>{errorMessage}</Text>
         </View>
       ) : null}
 
       <Pressable
-        style={({ pressed }) => [styles.button, pressed ? styles.buttonPressed : null]}
+        style={({ pressed }) => [styles.button, buttonStyle, pressed ? styles.buttonPressed : null]}
         onPress={handleSave}
         disabled={isSubmitting}
       >
-        <Text style={styles.buttonText}>{isSubmitting ? t.saving : t.addPerson}</Text>
+        <Text style={[styles.buttonText, { fontSize: fontSizes.body }]}>{isSubmitting ? t.saving : t.addPerson}</Text>
       </Pressable>
     </ScrollView>
   );

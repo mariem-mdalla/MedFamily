@@ -14,7 +14,8 @@ import { speakMedicineReminder } from './src/lib/speechReminder';
 import { RootStackParamList } from './src/navigation/types';
 import RootNavigator from './src/navigation/RootNavigator';
 
-I18nManager.allowRTL(true);
+I18nManager.allowRTL(false);
+I18nManager.forceRTL(false);
 
 // Navigation ref so App.tsx can navigate outside the component tree
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();

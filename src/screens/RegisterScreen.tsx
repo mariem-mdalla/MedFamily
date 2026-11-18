@@ -77,7 +77,8 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
           onPress={() => {
             const next = lang === 'ar' ? 'fr' : 'ar';
             setGuestLanguage(next);
-            I18nManager.forceRTL(next === 'ar');
+            I18nManager.allowRTL(false);
+            I18nManager.forceRTL(false);
           }}
         >
           <Text style={styles.langPillText}>{lang === 'ar' ? 'Français' : 'العربية'}</Text>
